@@ -1,0 +1,2772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
+  <meta name="referrer" content="no-referrer-when-downgrade" />
+  <title>AAGeek Events</title>
+  <meta name="description" content="AAGeek / NETA65 / AAWSNY events — filter by class, category, and venue." />
+
+  <!-- Open Graph / sharing -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="AAGeek Events" />
+  <meta property="og:description" content="Study · Seminar · Speaker · Series · Story · Service · Session — filter and view AAGeek / NETA65 / AAWSNY events." />
+  <meta name="twitter:card"       content="summary" />
+
+  <!-- Favicon: inline SVG data URI (no extra file required) -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314b8a6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='700' fill='white' dominant-baseline='middle'>A</text></svg>" />
+
+  <!-- Pico.css v2 (MIT) — mobile-first, semantic, classless+ -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+
+  <style>
+    /* =====================================================================
+       AAGeek Events — custom layer on top of Pico.css
+       Mobile-first. Pico provides typography, forms, dark-mode tokens.
+       We add: filter chips, event cards, calendar grid, dialog polish.
+       ===================================================================== */
+
+    :root {
+      --color-aageek:    #14b8a6;
+      --color-neta65:    #8b5cf6;
+      --color-aawsny:    #f59e0b;
+      --color-virtual:   #3b82f6;
+      --color-physical:  #10b981;
+      --color-hybrid:    #ec4899;
+      --shadow-card:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lift:     0 6px 18px rgba(0,0,0,.10);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+
+    .container {
+      padding: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hidden { display: none !important; }
+    .muted  { color: var(--pico-muted-color); }
+
+    /* ------------- Header ------------- */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--pico-background-color);
+      border-bottom: 1px solid var(--pico-muted-border-color);
+      padding: .75rem 1rem;
+    }
+    .app-header .brand h1 {
+      font-size: 1.25rem;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .app-header .brand p {
+      margin: .15rem 0 .6rem 0;
+      font-size: .78rem;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: .4rem;
+    }
+    .tab {
+      flex: 1;
+      padding: .5rem .25rem;
+      border-radius: .4rem;
+      border: 1px solid var(--pico-muted-border-color);
+      background: transparent;
+      color: var(--pico-color);
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+      margin: 0;
+    }
+    .tab:active { transform: scale(.97); }
+    .tab.active {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      border-color: var(--pico-primary-background);
+    }
+
+    /* ------------- Filters ------------- */
+    .filters {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      padding: .9rem;
+      background: var(--pico-card-background-color, var(--pico-background-color));
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .6rem;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    .filter-label {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--pico-muted-color);
+      font-weight: 600;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;
+    }
+    .chip {
+      padding: .3rem .75rem;
+      border-radius: .4rem;
+      font-size: .8rem;
+      border: 1px solid var(--pico-muted-border-color);
+      background: transparent;
+      color: var(--pico-color);
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .chip:hover  { background: var(--pico-secondary-background); }
+    .chip:active { transform: scale(.96); }
+    .chip.active {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      border-color: var(--pico-primary-background);
+    }
+
+    .filter-search input { margin: 0; }
+    .filter-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .filter-actions button { margin: 0; padding: .35rem .8rem; font-size: .85rem; }
+
+    .status { margin: .5rem 0; font-size: .9rem; display: flex; align-items: center; gap: .5rem; }
+    .status.error { color: var(--pico-del-color, #c1303a); }
+    .status .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--pico-muted-border-color);
+      border-top-color: var(--pico-primary-background);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .chip-count {
+      margin-left: .25rem;
+      opacity: .7;
+      font-size: .72rem;
+      font-weight: 500;
+    }
+    .chip.active .chip-count { opacity: .85; }
+    .chip[data-count="0"] { opacity: .5; }
+    .chip[data-count="0"]:not(.active) { cursor: not-allowed; }
+
+    /* ------------- List view ------------- */
+    .list-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: .75rem;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    .time-toggle, .pagesize-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .85rem;
+      margin: 0;
+      cursor: pointer;
+    }
+    .time-toggle input { margin: 0; }
+    .pagesize-toggle select {
+      margin: 0;
+      padding: .15rem 1.6rem .15rem .5rem;
+      font-size: .8rem;
+      width: auto;
+      min-height: 0;
+      line-height: 1.2;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .3rem;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+    .pagination:empty { display: none; }
+    .page-btn {
+      min-width: 2.25rem;
+      height: 2.25rem;
+      padding: 0 .55rem;
+      margin: 0;
+      border-radius: .4rem;
+      border: 1px solid var(--pico-muted-border-color);
+      background: transparent;
+      color: var(--pico-color);
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s ease;
+    }
+    .page-btn:hover:not(:disabled) { background: var(--pico-secondary-background); }
+    .page-btn.current {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      border-color: var(--pico-primary-background);
+    }
+    .page-btn:disabled { opacity: .35; cursor: default; }
+    .page-ellipsis { display: inline-flex; align-items: center; padding: 0 .25rem; color: var(--pico-muted-color); }
+
+    .events {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .event-card {
+      background: var(--pico-card-background-color, var(--pico-background-color));
+      border: 1px solid var(--pico-muted-border-color);
+      border-left: 4px solid var(--accent, var(--pico-primary-background));
+      border-radius: .6rem;
+      padding: .85rem;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: .85rem;
+      align-items: start;
+      transition: transform .12s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .event-card:hover  { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+    .event-card:active { transform: translateY(0); }
+    .event-card.past   { opacity: .6; }
+
+    .date-block {
+      text-align: center;
+      background: var(--pico-secondary-background);
+      border-radius: .45rem;
+      padding: .4rem .25rem;
+      line-height: 1.15;
+    }
+    .date-block .month {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--pico-muted-color);
+      font-weight: 600;
+    }
+    .date-block .day  { font-size: 1.45rem; font-weight: 700; }
+    .date-block .wday {
+      font-size: .65rem;
+      color: var(--pico-muted-color);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .event-main h3 {
+      margin: 0 0 .2rem 0;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: .15rem;
+    }
+    .title-row h3 { margin: 0; flex: 1; min-width: 0; }
+    .rel {
+      font-size: .7rem;
+      padding: .08rem .45rem;
+      border-radius: 999px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .rel-today    { background: rgba(239,68,68,.15);  color: #b91c1c; }
+    .rel-tomorrow { background: rgba(234,179,8,.15);  color: #a16207; }
+    .rel-soon     { background: rgba(59,130,246,.12); color: #1d4ed8; }
+    .rec-badge {
+      font-size: .75rem;
+      line-height: 1;
+      cursor: help;
+      opacity: .8;
+    }
+    mark {
+      background: rgba(252,211,77,.55);
+      color: inherit;
+      padding: 0 .1em;
+      border-radius: .15em;
+    }
+    @media (prefers-color-scheme: dark) {
+      mark          { background: rgba(252,211,77,.35); color: #fde68a; }
+      .rel-today    { color: #fca5a5; }
+      .rel-tomorrow { color: #fde68a; }
+      .rel-soon     { color: #93c5fd; }
+    }
+
+    .event-meta {
+      font-size: .8rem;
+      color: var(--pico-muted-color);
+      margin-bottom: .4rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .25rem .8rem;
+    }
+    .event-meta .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .event-meta .meta-loc a {
+      color: var(--pico-color);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--pico-muted-color);
+    }
+    .event-meta .meta-loc a:hover { color: var(--pico-primary-background); border-bottom-color: var(--pico-primary-background); }
+
+    .event-preview {
+      font-size: .82rem;
+      color: var(--pico-muted-color);
+      margin: 0 0 .45rem 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .month-heading {
+      margin: 1.25rem 0 .5rem 0;
+      font-size: .9rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--pico-muted-color);
+      font-weight: 700;
+      border-bottom: 1px solid var(--pico-muted-border-color);
+      padding: .35rem 0 .25rem 0;
+      background: var(--pico-background-color);
+    }
+    .month-heading:first-of-type { margin-top: 0; }
+
+    /* ------------- Tags / pills ------------- */
+    .tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .tag {
+      font-size: .7rem;
+      padding: .12rem .55rem;
+      border-radius: 999px;
+      background: var(--tag-bg, var(--pico-secondary-background));
+      color: var(--tag-fg, var(--pico-color));
+      border: 1px solid transparent;
+      font-weight: 600;
+      letter-spacing: .02em;
+      line-height: 1.4;
+    }
+    .tag.class-AAGeek  { --tag-bg: rgba(20,184,166,.15);  --tag-fg: #0f766e; }
+    .tag.class-NETA65  { --tag-bg: rgba(139,92,246,.15);  --tag-fg: #6d28d9; }
+    .tag.class-AAWSNY  { --tag-bg: rgba(245,158,11,.15);  --tag-fg: #b45309; }
+    .tag.cat           { --tag-bg: rgba(99,102,241,.12);  --tag-fg: #4338ca; }
+    .tag.venue-Virtual { --tag-bg: rgba(59,130,246,.15);  --tag-fg: #1d4ed8; }
+    .tag.venue-Physical{ --tag-bg: rgba(16,185,129,.15);  --tag-fg: #047857; }
+    .tag.venue-Hybrid  { --tag-bg: rgba(236,72,153,.15);  --tag-fg: #be185d; }
+    .tag.past-tag      { --tag-bg: rgba(107,114,128,.18); --tag-fg: #4b5563; }
+
+    @media (prefers-color-scheme: dark) {
+      .tag.class-AAGeek  { --tag-fg: #5eead4; }
+      .tag.class-NETA65  { --tag-fg: #c4b5fd; }
+      .tag.class-AAWSNY  { --tag-fg: #fcd34d; }
+      .tag.cat           { --tag-fg: #a5b4fc; }
+      .tag.venue-Virtual { --tag-fg: #93c5fd; }
+      .tag.venue-Physical{ --tag-fg: #6ee7b7; }
+      .tag.venue-Hybrid  { --tag-fg: #f9a8d4; }
+      .tag.past-tag      { --tag-fg: #d1d5db; }
+    }
+
+    /* ------------- Calendar grid ------------- */
+    .cal-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .75rem;
+    }
+    @media (max-width: 639px) {
+      .cal-header {
+        grid-template-columns: auto 1fr auto auto;
+        grid-template-areas:
+          "prev title next today"
+          "mode mode mode mode";
+        row-gap: .5rem;
+      }
+      .cal-header h2  { grid-area: title; }
+      #cal-prev       { grid-area: prev;  }
+      #cal-next       { grid-area: next;  }
+      #cal-today      { grid-area: today; }
+      .cal-mode       { grid-area: mode; justify-self: center; }
+    }
+    .cal-header h2 {
+      margin: 0;
+      text-align: center;
+      font-size: 1.1rem;
+      line-height: 1.2;
+    }
+    .cal-header button {
+      padding: .4rem .9rem;
+      margin: 0;
+      min-width: 2.5rem;
+      min-height: 2.4rem;
+      font-size: 1rem;
+    }
+    .today-btn { font-size: .85rem; padding: .4rem .8rem; }
+    #cal-prev, #cal-next { font-weight: 700; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .5rem;
+      overflow: hidden;
+      gap: 1px;
+      background: var(--pico-muted-border-color);
+    }
+    .cal-grid[hidden], .cal-week[hidden] { display: none !important; }
+    .cal-grid .dow {
+      background: var(--pico-secondary-background);
+      padding: .4rem .2rem;
+      font-size: .68rem;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      color: var(--pico-muted-color);
+    }
+    .cal-cell {
+      background: var(--pico-background-color);
+      min-height: 64px;
+      padding: .3rem;
+      font-size: .8rem;
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+      cursor: pointer;
+      position: relative;                /* for .cal-count-badge */
+      transition: background .12s ease;
+    }
+    .cal-cell:hover           { background: var(--pico-secondary-background); }
+    .cal-cell.other-month     { opacity: .35; }
+    .cal-cell .num            { font-weight: 600; font-size: .82rem; }
+    .cal-cell.today .num {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+    }
+    .cal-cell.selected {
+      outline: 2px solid var(--pico-primary-background);
+      outline-offset: -2px;
+    }
+    .cal-dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto; }
+    .cal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--pico-primary-background);
+    }
+    .cal-dot.class-AAGeek { background: var(--color-aageek); }
+    .cal-dot.class-NETA65 { background: var(--color-neta65); }
+    .cal-dot.class-AAWSNY { background: var(--color-aawsny); }
+
+    /* In-cell event bars (multi-day appearance via radius on first/last) */
+    .cal-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; overflow: hidden; }
+    .cal-bar {
+      font-size: .65rem;
+      line-height: 1.1;
+      padding: 1px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      background: var(--bar-bg, var(--pico-primary-background));
+      color: var(--bar-fg, var(--pico-primary-inverse));
+      border-radius: .25rem;
+    }
+    .cal-bar.class-AAGeek { --bar-bg: var(--color-aageek); --bar-fg: #fff; }
+    .cal-bar.class-NETA65 { --bar-bg: var(--color-neta65); --bar-fg: #fff; }
+    .cal-bar.class-AAWSNY { --bar-bg: var(--color-aawsny); --bar-fg: #fff; }
+    .cal-bar.bar-mid   { border-radius: 0; margin-left: -1px; margin-right: -1px; }
+    .cal-bar.bar-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -1px; }
+    .cal-bar.bar-end   { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+    .cal-bar.bar-cont  { font-style: italic; opacity: .85; }
+    .cal-more {
+      font-size: .65rem;
+      color: var(--pico-muted-color);
+      padding: 0 2px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cal-count-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      font-size: .6rem;
+      font-weight: 700;
+      padding: 0 .25rem;
+      min-width: 1rem;
+      height: 1rem;
+      border-radius: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    /* Week view: one row of tall cells with full event titles */
+    .cal-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .5rem;
+      overflow: hidden;
+      gap: 1px;
+      background: var(--pico-muted-border-color);
+      min-height: 320px;
+    }
+    .week-cell {
+      background: var(--pico-background-color);
+      padding: .4rem;
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      cursor: default;
+      min-height: 220px;
+    }
+    .week-cell.today .week-day-label {
+      color: var(--pico-primary-inverse);
+      background: var(--pico-primary-background);
+      padding: 0 .35rem;
+      border-radius: .25rem;
+    }
+    .week-day-label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--pico-muted-color);
+      font-weight: 700;
+      display: inline-block;
+      align-self: flex-start;
+    }
+    .week-event {
+      font-size: .72rem;
+      line-height: 1.2;
+      padding: 4px 6px;
+      border-radius: .35rem;
+      cursor: pointer;
+      background: var(--bar-bg, var(--pico-primary-background));
+      color: var(--bar-fg, var(--pico-primary-inverse));
+      border-left: 3px solid rgba(0,0,0,.2);
+    }
+    .week-event.class-AAGeek { --bar-bg: var(--color-aageek); --bar-fg: #fff; }
+    .week-event.class-NETA65 { --bar-bg: var(--color-neta65); --bar-fg: #fff; }
+    .week-event.class-AAWSNY { --bar-bg: var(--color-aawsny); --bar-fg: #fff; }
+    .week-event .we-time { font-weight: 600; font-size: .68rem; display: block; opacity: .9; }
+    .week-event .we-title { display: block; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Month/Week toggle in calendar header */
+    .cal-mode {
+      display: inline-flex;
+      gap: .3rem;
+      margin-left: .25rem;
+    }
+    .cal-mode button {
+      font-size: .75rem;
+      padding: .25rem .55rem;
+      min-height: 0;
+      min-width: 0;
+      margin: 0;
+      border-radius: .4rem;
+      border: 1px solid var(--pico-muted-border-color);
+      background: transparent;
+      color: var(--pico-muted-color);
+      cursor: pointer;
+    }
+    .cal-mode button.active {
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      border-color: var(--pico-primary-background);
+    }
+
+    .cal-day-events {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+    .cal-day-events h3 {
+      font-size: 1rem;
+      margin: .5rem 0;
+    }
+
+    /* ------------- Embed ------------- */
+    .embed-wrap {
+      position: relative;
+      padding-bottom: 120%;
+      height: 0;
+      overflow: hidden;
+      border-radius: .5rem;
+    }
+    .embed-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .5rem;
+    }
+
+    /* ------------- Dialog ------------- */
+    .event-dialog::backdrop { background: rgba(0,0,0,.55); }
+    .event-dialog {
+      border: none;
+      padding: 0;
+      background: transparent;
+    }
+    .event-dialog article {
+      max-width: 600px;
+      width: min(95vw, 600px);
+      margin: 0;
+      position: relative;
+    }
+    .event-dialog header {
+      padding-right: 3rem;           /* reserve space for the close button */
+    }
+    .event-dialog header h3 {
+      margin: 0 0 .35rem 0;
+      font-size: 1.15rem;
+      line-height: 1.3;
+    }
+    .dlg-meta { font-size: .9rem; margin-bottom: .75rem; }
+    .dlg-meta div {
+      margin-bottom: .3rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+      line-height: 1.4;
+    }
+    .dlg-meta .meta-icon { flex-shrink: 0; line-height: 1.4; }
+    .dlg-meta a {
+      color: var(--pico-primary);
+      word-break: break-all;
+    }
+    .dlg-body {
+      font-size: .9rem;
+      line-height: 1.55;
+      max-height: 55vh;
+      overflow-y: auto;
+      padding-right: .25rem;
+    }
+    .dlg-body a { word-break: break-all; color: var(--pico-primary); }
+    .desc-html {
+      white-space: pre-wrap;           /* preserve column spacing in schedules */
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    .desc-html br + br { display: block; content: ''; margin-top: .35rem; }
+    .desc-html p  { margin: 0 0 .6rem 0; }
+    .desc-html ul, .desc-html ol { margin: .25rem 0 .6rem 1.25rem; padding: 0; }
+    .desc-html li { margin-bottom: .15rem; }
+    .desc-html a  { color: var(--pico-primary); }
+    .desc-html strong, .desc-html b { color: var(--pico-color); }
+
+    /* Header icon buttons (⚙ ?) — square to match the rest of the UI */
+    .help-btn {
+      background: transparent;
+      border: 1px solid var(--pico-muted-border-color);
+      color: var(--pico-muted-color);
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      max-width: 2rem;
+      border-radius: .4rem;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .help-btn:hover { background: var(--pico-secondary-background); color: var(--pico-color); border-color: var(--pico-color); }
+    .help-btn:focus-visible { outline: 2px solid var(--pico-primary-background); outline-offset: 2px; }
+    .brand-row { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
+    .brand-actions { display: inline-flex; gap: .4rem; flex-shrink: 0; }
+
+    /* Search hint */
+    .search-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: .2rem;
+      font-size: .7rem;
+      color: var(--pico-muted-color);
+      margin-left: .35rem;
+    }
+    kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .72rem;
+      padding: .05rem .35rem;
+      border-radius: .25rem;
+      background: var(--pico-secondary-background);
+      border: 1px solid var(--pico-muted-border-color);
+      color: var(--pico-color);
+    }
+
+    /* Settings dialog */
+    .settings-body { font-size: .9rem; }
+    .settings-group {
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .5rem;
+      padding: .75rem 1rem;
+      margin-bottom: .9rem;
+    }
+    .settings-group legend { font-weight: 600; padding: 0 .35rem; font-size: .85rem; }
+    .settings-group label { display: flex; align-items: center; gap: .5rem; margin: .3rem 0; cursor: pointer; }
+    .settings-group label.row { justify-content: flex-start; }
+    .settings-group select { margin: 0; padding: .15rem 1.6rem .15rem .5rem; width: auto; }
+    .settings-group input[type=checkbox], .settings-group input[type=radio] { margin: 0; }
+    .notify-hint { margin: .5rem 0 0 0; font-size: .78rem; }
+
+    /* Help dialog table */
+    .help-table { width: 100%; font-size: .9rem; border-collapse: collapse; }
+    .help-table td { padding: .35rem .25rem; vertical-align: top; }
+    .help-table td:first-child { white-space: nowrap; width: 1%; }
+    .help-table tr + tr td { border-top: 1px solid var(--pico-muted-border-color); }
+
+    /* Focus ring polish for event cards */
+    .event-card:focus-visible {
+      outline: 2px solid var(--pico-primary-background);
+      outline-offset: 2px;
+    }
+    /* Dialog close (X) button.
+       Anchored to the article (not the header) so it always sits cleanly in
+       the dialog's top-right corner, regardless of Pico's header margins.
+       Pico's <button> reset uses display:block; width:100% — we lock the
+       size with explicit width/min/max + appearance:none to fully neutralise
+       any default styling. */
+    .close {
+      position: absolute;
+      top: .6rem;
+      right: .6rem;
+      z-index: 1;
+      width: 2rem;
+      height: 2rem;
+      min-width: 2rem;
+      max-width: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--pico-secondary-background);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: .4rem;
+      font-size: 1.25rem;
+      font-weight: 500;
+      font-family: inherit;
+      line-height: 1;
+      padding: 0;
+      margin: 0;
+      color: var(--pico-color);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+    }
+    .close:hover {
+      background: var(--pico-color);
+      color: var(--pico-background-color);
+      border-color: var(--pico-color);
+    }
+    .close:active { transform: scale(.94); }
+    .close:focus-visible {
+      outline: 2px solid var(--pico-primary-background);
+      outline-offset: 2px;
+    }
+    .event-dialog footer {
+      display: flex;
+      gap: .5rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .event-dialog footer > * { margin: 0; }
+
+    /* ------------- Skeleton ------------- */
+    .skeleton {
+      background: linear-gradient(90deg,
+        var(--pico-secondary-background),
+        var(--pico-muted-border-color),
+        var(--pico-secondary-background));
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: .5rem;
+      height: 78px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .app-footer {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      color: var(--pico-muted-color);
+      font-size: .78rem;
+    }
+
+    /* Hide keyboard hint on touch / narrow screens */
+    @media (max-width: 639px), (pointer: coarse) {
+      .search-hint { display: none; }
+    }
+
+    /* ------------- Print stylesheet ------------- */
+    @media print {
+      .app-header, .filters, .view-toggle, .list-controls .pagesize-toggle,
+      .list-controls .time-toggle, .pagination, dialog, .embed-wrap, .app-footer,
+      #view-calendar, #view-embed, .filter-actions, .search-hint, #status {
+        display: none !important;
+      }
+      body { background: white; color: black; }
+      .container { padding: 0; max-width: 100%; }
+      .event-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        border: 1px solid #999 !important;
+        box-shadow: none !important;
+        background: white !important;
+        margin-bottom: .5rem;
+        cursor: default;
+      }
+      .event-card .event-meta a { color: #444 !important; border: 0 !important; }
+      .tag { border: 1px solid #999 !important; color: #000 !important; background: #f5f5f5 !important; }
+      .month-heading { background: white !important; }
+      .event-preview { max-height: none; overflow: visible; -webkit-line-clamp: unset; line-clamp: unset; }
+    }
+
+    /* ------------- Responsive ------------- */
+    @media (min-width: 640px) {
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: .9rem 1.5rem;
+      }
+      .filter-search   { grid-column: 1 / -1; }
+      .filter-actions  { grid-column: 1 / -1; }
+      .event-card      { grid-template-columns: 72px 1fr; }
+      .cal-cell        { min-height: 92px; font-size: .85rem; }
+      .embed-wrap      { padding-bottom: 75%; }
+    }
+
+    @media (min-width: 960px) {
+      .filters { grid-template-columns: repeat(3, 1fr); }
+      .app-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      .app-header .brand p { margin-bottom: 0; }
+      .view-toggle { width: 320px; }
+      .embed-wrap  { padding-bottom: 60%; }
+    }
+  </style>
+</head>
+<body>
+
+  <noscript>
+    <div style="padding:1rem;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;font-family:system-ui,sans-serif;">
+      <strong>JavaScript is required.</strong> This app filters events client-side from a Google Calendar ICS feed.
+      You can still view the calendar directly:
+      <a href="https://calendar.google.com/calendar/embed?src=ec0c83a6ad02b239927d3c156bff2829935c3e91c4c82baff7119927ccf4cd9d%40group.calendar.google.com&ctz=America%2FChicago" target="_blank" rel="noopener">open in Google Calendar</a>.
+    </div>
+  </noscript>
+
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-row">
+        <h1>AAGeek Events</h1>
+        <div class="brand-actions">
+          <button id="settings-btn" type="button" class="help-btn" aria-label="Settings" title="Settings">⚙</button>
+          <button id="help-btn" type="button" class="help-btn" aria-label="Keyboard shortcuts (press ?)" title="Keyboard shortcuts (?)">?</button>
+        </div>
+      </div>
+      <p class="muted">Study · Seminar · Speaker · Series · Story · Service · Session</p>
+    </div>
+    <nav class="view-toggle" role="tablist" aria-label="View">
+      <button type="button" class="tab active" data-view="list" role="tab" aria-selected="true" title="List view (1)">List</button>
+      <button type="button" class="tab" data-view="calendar" role="tab" aria-selected="false" title="Calendar view (2)">Calendar</button>
+      <button type="button" class="tab" data-view="embed" role="tab" aria-selected="false" title="Google embed (3)">Google</button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <!-- Filters -->
+    <section class="filters" aria-label="Filters">
+      <div class="filter-group">
+        <span class="filter-label">Class</span>
+        <div class="chips" data-filter="class" role="group" aria-label="Class">
+          <button type="button" class="chip active" data-value="all">All</button>
+          <button type="button" class="chip" data-value="AAGeek">AAGeek</button>
+          <button type="button" class="chip" data-value="NETA65">NETA65</button>
+          <button type="button" class="chip" data-value="AAWSNY">AAWSNY</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Category</span>
+        <div class="chips" data-filter="category" role="group" aria-label="Category">
+          <button type="button" class="chip active" data-value="all">All</button>
+          <button type="button" class="chip" data-value="Study">Study</button>
+          <button type="button" class="chip" data-value="Seminar">Seminar</button>
+          <button type="button" class="chip" data-value="Speaker">Speaker</button>
+          <button type="button" class="chip" data-value="Series">Series</button>
+          <button type="button" class="chip" data-value="Story">Story</button>
+          <button type="button" class="chip" data-value="Service">Service</button>
+          <button type="button" class="chip" data-value="Session">Session</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Venue</span>
+        <div class="chips" data-filter="venue" role="group" aria-label="Venue">
+          <button type="button" class="chip active" data-value="all">All</button>
+          <button type="button" class="chip" data-value="Virtual">Virtual</button>
+          <button type="button" class="chip" data-value="Physical">Physical</button>
+          <button type="button" class="chip" data-value="Hybrid">Hybrid</button>
+        </div>
+      </div>
+      <div class="filter-group filter-dow">
+        <span class="filter-label">Day of week</span>
+        <div class="chips" data-filter="dow" role="group" aria-label="Day of week">
+          <button type="button" class="chip active" data-value="all">All</button>
+          <button type="button" class="chip" data-value="0">Sun</button>
+          <button type="button" class="chip" data-value="1">Mon</button>
+          <button type="button" class="chip" data-value="2">Tue</button>
+          <button type="button" class="chip" data-value="3">Wed</button>
+          <button type="button" class="chip" data-value="4">Thu</button>
+          <button type="button" class="chip" data-value="5">Fri</button>
+          <button type="button" class="chip" data-value="6">Sat</button>
+        </div>
+      </div>
+      <div class="filter-group filter-search">
+        <label class="filter-label" for="search">
+          Search <span class="search-hint">press <kbd>/</kbd> to focus</span>
+        </label>
+        <input id="search" type="search" placeholder="Search title, location, description…" autocomplete="off" />
+      </div>
+      <div class="filter-actions">
+        <button id="reset-filters" class="secondary" type="button">Reset filters</button>
+        <button id="refresh" class="secondary" type="button" title="Re-fetch from Google">↻ Refresh</button>
+      </div>
+    </section>
+
+    <div id="status" class="status" aria-live="polite"></div>
+
+    <!-- LIST VIEW -->
+    <section id="view-list" class="view" aria-label="Event list">
+      <div class="list-controls">
+        <label class="time-toggle">
+          <input type="checkbox" id="upcoming-only" checked />
+          <span>Upcoming only</span>
+        </label>
+        <label class="pagesize-toggle">
+          <span>Per page</span>
+          <select id="page-size" aria-label="Events per page">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="0">All</option>
+          </select>
+        </label>
+        <span id="count" class="muted"></span>
+      </div>
+      <div id="events" class="events"></div>
+      <nav id="pagination" class="pagination" aria-label="Pagination"></nav>
+    </section>
+
+    <!-- CALENDAR VIEW -->
+    <section id="view-calendar" class="view hidden" aria-label="Month calendar">
+      <div class="cal-header">
+        <button id="cal-prev" type="button" aria-label="Previous">‹</button>
+        <h2 id="cal-title"></h2>
+        <button id="cal-next" type="button" aria-label="Next">›</button>
+        <button id="cal-today" type="button" class="secondary today-btn">Today</button>
+        <div class="cal-mode" role="group" aria-label="Calendar mode">
+          <button type="button" data-mode="month" class="active">Month</button>
+          <button type="button" data-mode="week">Week</button>
+        </div>
+      </div>
+      <div class="cal-grid"  id="cal-grid"></div>
+      <div class="cal-week"  id="cal-week" hidden></div>
+      <div id="cal-day-events" class="cal-day-events"></div>
+    </section>
+
+    <!-- EMBED VIEW -->
+    <section id="view-embed" class="view hidden" aria-label="Google Calendar embed">
+      <div class="embed-wrap">
+        <iframe id="gcal-iframe"
+          src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FChicago&src=ZWMwYzgzYTZhZDAyYjIzOTkyN2QzYzE1NmJmZjI4Mjk5MzVjM2U5MWM0YzgyYmFmZjcxMTk5MjdjY2Y0Y2Q5ZEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&color=%23795548"
+          title="Google Calendar"
+          loading="lazy"
+          frameborder="0" scrolling="no"></iframe>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Settings dialog -->
+  <dialog id="settings-dialog" class="event-dialog" aria-labelledby="settings-title">
+    <article>
+      <header>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <h3 id="settings-title">Settings</h3>
+      </header>
+      <div class="settings-body">
+        <fieldset class="settings-group">
+          <legend>Time zone</legend>
+          <label><input type="radio" name="tz" value="local" /> My local time <span class="muted" id="local-tz-name"></span></label>
+          <label><input type="radio" name="tz" value="default" /> America/Chicago <span class="muted">(calendar's published time zone)</span></label>
+        </fieldset>
+        <fieldset class="settings-group">
+          <legend>Reminders</legend>
+          <label class="row">
+            <input type="checkbox" id="notify-enabled" />
+            <span>Notify me before events start</span>
+          </label>
+          <label class="row">
+            <span>Lead time</span>
+            <select id="notify-lead">
+              <option value="5">5 minutes</option>
+              <option value="15" selected>15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="1440">1 day</option>
+            </select>
+          </label>
+          <p class="muted notify-hint">Reminders fire only while this page is open in a browser tab. Closing the tab cancels them.</p>
+        </fieldset>
+      </div>
+      <footer>
+        <button id="settings-reset" type="button" class="outline">Reset all preferences</button>
+        <button data-close class="secondary" type="button">Done</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <!-- Help dialog -->
+  <dialog id="help-dialog" class="event-dialog" aria-labelledby="help-title">
+    <article>
+      <header>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <h3 id="help-title">Keyboard shortcuts</h3>
+      </header>
+      <table class="help-table">
+        <tbody>
+          <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Close dialog · clear search when focused</td></tr>
+          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>Switch to List · Calendar · Google view</td></tr>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next month (Calendar view)</td></tr>
+          <tr><td><kbd>T</kbd></td><td>Jump to today (Calendar view)</td></tr>
+          <tr><td><kbd>W</kbd></td><td>Toggle Month / Week (Calendar view)</td></tr>
+          <tr><td><kbd>R</kbd></td><td>Reset filters</td></tr>
+          <tr><td><kbd>U</kbd></td><td>Toggle "Upcoming only"</td></tr>
+          <tr><td><kbd>P</kbd></td><td>Print the filtered list</td></tr>
+          <tr><td><kbd>,</kbd></td><td>Open settings</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+          <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd></td><td>Open event (when card is focused)</td></tr>
+        </tbody>
+      </table>
+      <footer>
+        <button data-close class="secondary" type="button">Close</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <!-- Event details dialog -->
+  <dialog id="event-dialog" class="event-dialog" aria-labelledby="dlg-title">
+    <article>
+      <header>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <h3 id="dlg-title"></h3>
+        <div id="dlg-tags" class="tags"></div>
+      </header>
+      <div id="dlg-meta" class="dlg-meta"></div>
+      <div id="dlg-body" class="dlg-body"></div>
+      <footer>
+        <button id="dlg-ics" type="button" class="outline" title="Download as .ics">⤓ .ics</button>
+        <a id="dlg-add" target="_blank" rel="noopener" role="button" class="outline">＋ Google</a>
+        <a id="dlg-link" target="_blank" rel="noopener" role="button" class="contrast outline">Open in Google</a>
+        <button data-close class="secondary" type="button">Close</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <footer class="app-footer">
+    <small>
+      Calendar data &copy; Google ·
+      Built with <a href="https://picocss.com" target="_blank" rel="noopener">Pico.css</a> &amp;
+      <a href="https://github.com/kewisch/ical.js" target="_blank" rel="noopener">ical.js</a> ·
+      Single-file SPA · No server required.
+    </small>
+  </footer>
+
+  <!-- ical.js (MPL 2.0) for robust ICS parsing incl. recurring events -->
+  <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+
+  <script>
+    /* =====================================================================
+       AAGeek Events — inline app
+       - Fetches public Google Calendar ICS (with CORS proxy fallbacks)
+       - Parses with ical.js (handles recurring events, exceptions, TZID)
+       - Description content is HTML (<br>, <a>, entities). We extract tags
+         from the first segment (before the first <br>/newline), sanitize the
+         remaining HTML, and store a plain-text view for search/previews.
+       - Locations may be URLs (http(s)://, zoommtg://, zoomus://) or addresses.
+       ===================================================================== */
+    (function () {
+      'use strict';
+
+      // ----------------------------- Config -----------------------------
+      const ICS_URL =
+        'https://calendar.google.com/calendar/ical/' +
+        'ec0c83a6ad02b239927d3c156bff2829935c3e91c4c82baff7119927ccf4cd9d' +
+        '%40group.calendar.google.com/public/basic.ics';
+
+      const CALENDAR_ID = 'ec0c83a6ad02b239927d3c156bff2829935c3e91c4c82baff7119927ccf4cd9d@group.calendar.google.com';
+
+      const GCAL_HTML_URL =
+        'https://calendar.google.com/calendar/embed?ctz=America%2FChicago' +
+        '&src=' + encodeURIComponent(CALENDAR_ID);
+
+      // CORS proxies tried in order. First is "no proxy" (works if Google
+      // serves CORS headers for the public ICS, which is sometimes true).
+      const FETCH_STRATEGIES = [
+        (url) => url,
+        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      ];
+
+      const DEFAULT_TZ = 'America/Chicago';
+      const LOCAL_TZ   = Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TZ;
+      const CACHE_KEY  = 'aageek_calendar_cache_v1';
+      const PREFS_KEY  = 'aageek_prefs_v2';
+
+      const DEFAULT_PREFS = {
+        view: 'list',
+        calMode: 'month',                 // 'month' | 'week'
+        pageSize: 20,                     // 10|20|30|50|100|0 (all)
+        page: 1,
+        timeZone: LOCAL_TZ,               // default: user's own TZ
+        tzExplicit: false,                // becomes true only after user picks in Settings
+        notify: { enabled: false, leadMinutes: 15 },
+        filters: {
+          class: 'all', category: 'all', venue: 'all', dow: 'all',
+          search: '', upcomingOnly: true,
+        },
+      };
+
+      // Reactive accessor — most code reads via these so a TZ change is live.
+      function TZ() { return state.prefs.timeZone || DEFAULT_TZ; }
+
+      const KNOWN = {
+        class:    ['AAGeek', 'NETA65', 'AAWSNY'],
+        category: ['Study', 'Seminar', 'Speaker', 'Series', 'Story', 'Service', 'Session'],
+        venue:    ['Virtual', 'Physical', 'Hybrid'],
+      };
+
+      // HTML allow-list for description rendering. Anything else is unwrapped.
+      const ALLOWED_TAGS = new Set([
+        'BR', 'A', 'P', 'B', 'I', 'U', 'STRONG', 'EM', 'SPAN', 'DIV',
+        'UL', 'OL', 'LI', 'HR', 'CODE', 'PRE', 'BLOCKQUOTE', 'H4', 'H5', 'H6',
+      ]);
+      const ALLOWED_SCHEMES = new Set([
+        'http:', 'https:', 'mailto:', 'tel:', 'zoommtg:', 'zoomus:', 'webcal:',
+      ]);
+
+      // ----------------------------- State ------------------------------
+      const state = {
+        events: [],
+        filtered: [],
+        paged: [],
+        prefs: JSON.parse(JSON.stringify(DEFAULT_PREFS)),
+        calRef: firstOfMonth(new Date()),
+        selectedDay: null,
+        lastFocused: null,
+        notifTimers: [],
+      };
+
+      // -------------------- Preferences persistence ---------------------
+      function savePrefs() {
+        try { localStorage.setItem(PREFS_KEY, JSON.stringify(state.prefs)); }
+        catch { /* private mode */ }
+      }
+      function loadPrefs() {
+        try {
+          const raw = localStorage.getItem(PREFS_KEY);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          // Whitelist-merge so a partial / older payload upgrades cleanly.
+          if (['list','calendar','embed'].includes(saved.view)) state.prefs.view = saved.view;
+          if (['month','week'].includes(saved.calMode))         state.prefs.calMode = saved.calMode;
+          if ([10,20,30,50,100,0].includes(saved.pageSize))     state.prefs.pageSize = saved.pageSize;
+          if (typeof saved.page === 'number' && saved.page > 0) state.prefs.page = saved.page;
+          // Only honour a saved TZ if the user picked it themselves —
+          // otherwise stay on the freshly detected LOCAL_TZ default.
+          if (saved.tzExplicit === true && typeof saved.timeZone === 'string') {
+            state.prefs.timeZone   = saved.timeZone;
+            state.prefs.tzExplicit = true;
+          }
+          if (saved.notify && typeof saved.notify === 'object') {
+            if (typeof saved.notify.enabled === 'boolean') state.prefs.notify.enabled = saved.notify.enabled;
+            if ([5,15,30,60,1440].includes(saved.notify.leadMinutes)) state.prefs.notify.leadMinutes = saved.notify.leadMinutes;
+          }
+          const sf = saved.filters || {};
+          if (KNOWN.class   .concat('all').includes(sf.class))    state.prefs.filters.class    = sf.class;
+          if (KNOWN.category.concat('all').includes(sf.category)) state.prefs.filters.category = sf.category;
+          if (KNOWN.venue   .concat('all').includes(sf.venue))    state.prefs.filters.venue    = sf.venue;
+          if (['all','0','1','2','3','4','5','6'].includes(sf.dow)) state.prefs.filters.dow = sf.dow;
+          if (typeof sf.search === 'string')                      state.prefs.filters.search = sf.search;
+          if (typeof sf.upcomingOnly === 'boolean')               state.prefs.filters.upcomingOnly = sf.upcomingOnly;
+        } catch { /* ignore */ }
+      }
+      function syncFiltersUI() {
+        $$('.chips').forEach(group => {
+          const kind = group.dataset.filter;
+          const val = state.prefs.filters[kind];
+          group.querySelectorAll('.chip').forEach(b =>
+            b.classList.toggle('active', b.dataset.value === val));
+        });
+        $('#search').value = state.prefs.filters.search || '';
+        $('#upcoming-only').checked = !!state.prefs.filters.upcomingOnly;
+        const ps = $('#page-size'); if (ps) ps.value = String(state.prefs.pageSize);
+      }
+
+      // ----------------------------- Utils ------------------------------
+      const $  = (s, r=document) => r.querySelector(s);
+      const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+      function el(tag, props, ...kids) {
+        const e = document.createElement(tag);
+        if (props) {
+          for (const [k, v] of Object.entries(props)) {
+            if (v == null || v === false) continue;
+            if (k === 'class')        e.className = v;
+            else if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+            else if (k === 'dataset') Object.assign(e.dataset, v);
+            else if (k.startsWith('on') && typeof v === 'function')
+              e.addEventListener(k.slice(2).toLowerCase(), v);
+            else e.setAttribute(k, v === true ? '' : v);
+          }
+        }
+        for (const c of kids) {
+          if (c == null || c === false) continue;
+          e.appendChild(typeof c === 'string' || typeof c === 'number'
+            ? document.createTextNode(String(c)) : c);
+        }
+        return e;
+      }
+
+      function fmt(date, opts) {
+        return new Intl.DateTimeFormat('en-US',
+          Object.assign({ timeZone: TZ() }, opts)).format(date);
+      }
+
+      function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+      // ISO-style YYYY-MM-DD in the active timezone — sortable as a string.
+      // Cached per-TZ so a TZ switch doesn't break anything.
+      const _dayKeyCache = new Map();
+      function dayKey(d) {
+        const tz = TZ();
+        let f = _dayKeyCache.get(tz);
+        if (!f) {
+          f = new Intl.DateTimeFormat('en-CA', {
+            timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+          });
+          _dayKeyCache.set(tz, f);
+        }
+        return f.format(d);
+      }
+      function isSameDay(a, b) { return dayKey(a) === dayKey(b); }
+
+      // Day-of-week 0..6 (Sun..Sat) in the active timezone.
+      const _dowCache = new Map();
+      function dayOfWeek(d) {
+        const tz = TZ();
+        let f = _dowCache.get(tz);
+        if (!f) {
+          f = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' });
+          _dowCache.set(tz, f);
+        }
+        return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(f.format(d));
+      }
+      function truncate(s, n)  { return s && s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+      function timeAgo(ts) {
+        const m = Math.round((Date.now() - ts) / 60000);
+        if (m < 1)  return 'just now';
+        if (m < 60) return `${m}m ago`;
+        const h = Math.round(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.round(h / 24)}d ago`;
+      }
+
+      function setStatus(text, opts) {
+        opts = opts || {};
+        const s = $('#status');
+        s.innerHTML = '';
+        if (text) {
+          if (opts.loading) s.appendChild(el('span', { class: 'spinner', 'aria-hidden': 'true' }));
+          s.appendChild(el('span', null, text));
+        }
+        s.classList.toggle('error', !!opts.error && !!text);
+      }
+
+      function setSkeleton(n = 5) {
+        const c = $('#events');
+        c.innerHTML = '';
+        for (let i = 0; i < n; i++) c.appendChild(el('div', { class: 'skeleton' }));
+      }
+
+      // --------------------------- Fetching -----------------------------
+      async function loadCalendar() {
+        const cached = readCache();
+        const hadEventsBefore = state.events.length > 0;
+
+        if (cached) {
+          try {
+            processIcs(cached.text);
+            setStatus(`Cached (${timeAgo(cached.ts)}) · refreshing…`, { loading: true });
+          } catch (e) { console.warn('Cache parse failed', e); }
+        }
+
+        // Only show skeletons when we have nothing to display yet.
+        if (!hadEventsBefore && !cached) {
+          setSkeleton(5);
+          setStatus('Loading events…', { loading: true });
+        } else if (!cached) {
+          setStatus('Refreshing…', { loading: true });
+        }
+
+        const FETCH_TIMEOUT_MS = 12000; // 12s per strategy — bail and try the next
+
+        let lastErr;
+        for (const strat of FETCH_STRATEGIES) {
+          const url = strat(ICS_URL);
+          const ctrl = new AbortController();
+          const tid  = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+          try {
+            const res = await fetch(url, {
+              redirect: 'follow', cache: 'no-store', signal: ctrl.signal,
+            });
+            if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+            const text = await res.text();
+            if (!text || !text.includes('BEGIN:VCALENDAR')) {
+              lastErr = new Error('Response was not ICS'); continue;
+            }
+            writeCache(text);
+            processIcs(text);
+            setStatus('');
+            return;
+          } catch (e) {
+            lastErr = e;
+            const reason = e && e.name === 'AbortError' ? 'timed out' : (e && e.message) || e;
+            console.warn('Fetch strategy failed:', url, reason);
+          } finally {
+            clearTimeout(tid);
+          }
+        }
+
+        if (state.events.length === 0) {
+          setStatus(`Could not load calendar. ${lastErr?.message || ''}`.trim(), { error: true });
+          $('#events').innerHTML = '';
+          $('#events').appendChild(el('div', { class: 'status error' },
+            'Network or CORS error. You can still view events via the ',
+            el('a', { href: '#', onClick: (e) => { e.preventDefault(); switchView('embed'); } }, 'Google'),
+            ' tab.'));
+        } else {
+          setStatus(`Refresh failed — showing cached events from ${cached ? timeAgo(cached.ts) : 'memory'}.`, { error: true });
+        }
+      }
+
+      function readCache() {
+        try {
+          const raw = localStorage.getItem(CACHE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+      }
+      function writeCache(text) {
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), text })); }
+        catch { /* quota or private mode */ }
+      }
+
+      // -------------------------- ICS parsing ---------------------------
+      function processIcs(icsText) {
+        if (typeof ICAL === 'undefined') throw new Error('ical.js failed to load');
+
+        const jcal = ICAL.parse(icsText);
+        const root = new ICAL.Component(jcal);
+        const calName = root.getFirstPropertyValue('x-wr-calname');
+        if (calName) document.title = calName;
+
+        const now = new Date();
+        const horizonStart = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 365);
+        const horizonEnd   = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 365 * 2);
+
+        // Build an override map so recurrence exceptions are honored when expanding.
+        const overrides = new Map(); // uid -> array of ICAL.Event
+        for (const ve of root.getAllSubcomponents('vevent')) {
+          const rid = ve.getFirstPropertyValue('recurrence-id');
+          const uid = ve.getFirstPropertyValue('uid');
+          if (rid && uid) {
+            if (!overrides.has(uid)) overrides.set(uid, []);
+            overrides.get(uid).push(new ICAL.Event(ve));
+          }
+        }
+
+        const events = [];
+        for (const ve of root.getAllSubcomponents('vevent')) {
+          // Skip exception entries — they're attached to their parent via overrides.
+          if (ve.getFirstPropertyValue('recurrence-id')) continue;
+
+          let baseEvent;
+          try { baseEvent = new ICAL.Event(ve); }
+          catch (e) { console.warn('Bad VEVENT, skipping', e); continue; }
+
+          // Attach exceptions so iterator returns overridden items where present.
+          const list = overrides.get(baseEvent.uid);
+          if (list) {
+            for (const ex of list) {
+              try { baseEvent.relateException(ex); }
+              catch (e) { console.warn('relateException failed', e); }
+            }
+          }
+
+          const rruleSummary = baseEvent.isRecurring() ? summarizeRRule(ve) : '';
+          if (baseEvent.isRecurring()) {
+            try {
+              const it = baseEvent.iterator();
+              let next, count = 0;
+              const MAX = 600;
+              while ((next = it.next()) && count < MAX) {
+                count++;
+                const d = baseEvent.getOccurrenceDetails(next);
+                const startJS = d.startDate.toJSDate();
+                const endJS   = d.endDate.toJSDate();
+                if (endJS   < horizonStart) continue;
+                if (startJS > horizonEnd)   break;
+                events.push(buildEvent(d.item, d.startDate, d.endDate, ve, true, rruleSummary));
+              }
+            } catch (e) {
+              console.warn('Recurrence expansion failed for', baseEvent.summary, e);
+            }
+          } else {
+            const startJS = baseEvent.startDate && baseEvent.startDate.toJSDate();
+            const endJS   = baseEvent.endDate   && baseEvent.endDate.toJSDate();
+            if (!startJS) continue;
+            if (endJS   && endJS   < horizonStart) continue;
+            if (startJS && startJS > horizonEnd)   continue;
+            events.push(buildEvent(baseEvent, baseEvent.startDate, baseEvent.endDate, ve, false, ''));
+          }
+        }
+
+        events.sort((a, b) => a.start - b.start);
+        state.events = events;
+        applyFilters();
+        render();
+        scheduleNotifications();
+      }
+
+      function buildEvent(srcEvent, startICAL, endICAL, ve, recurring, rruleSummary) {
+        const start = startICAL.toJSDate();
+        const end   = endICAL ? endICAL.toJSDate() : new Date(start.getTime() + 60 * 60 * 1000);
+        const isAllDay = !!(startICAL && startICAL.isDate);
+
+        const summary     = (srcEvent.summary || '(No title)').trim();
+        const description = (srcEvent.description || '').trim();
+        const location    = (srcEvent.location || '').trim();
+        const url         = ve.getFirstPropertyValue('url') || '';
+        const uid         = (srcEvent.uid || '') + '@' + start.toISOString();
+
+        const parsed = processDescription(description);
+
+        return {
+          uid, summary, location, url,
+          start, end, isAllDay,
+          descriptionHtml: parsed.bodyHtml,
+          descriptionText: parsed.bodyText,
+          tags: parsed.tags,
+          recurring: !!recurring,
+          rruleSummary: rruleSummary || '',
+        };
+      }
+
+      // -------------------- Description / HTML helpers ------------------
+      // Split point: first <br>, </p>, or newline marks the end of the tag line.
+      const TAG_LINE_SEP = /<br\s*\/?>|<\/p>|\r?\n/i;
+
+      function processDescription(rawDescription) {
+        const empty = { tags: { class: null, category: null, venue: null }, bodyHtml: '', bodyText: '' };
+        if (!rawDescription) return empty;
+
+        // 1. Find the tag line (before the first <br>/newline). HTML decoded.
+        const firstSegRaw = (rawDescription.split(TAG_LINE_SEP)[0] || '').trim();
+        const firstSeg = decodeEntities(firstSegRaw);
+        const tags = parseTagsFromLine(firstSeg);
+
+        // 2. If we found any tags, strip the tag line + leading "<br><br>--<br>"
+        //    separator that this calendar always uses.
+        let rest = rawDescription;
+        if (tags.class || tags.category || tags.venue) {
+          rest = rawDescription
+            .replace(/^[^<\n\r]*(?:<br\s*\/?>\s*|\r?\n\s*)+/i, '')   // drop tag line + breaks
+            .replace(/^\s*-{2,}\s*(?:<br\s*\/?>\s*|\r?\n\s*)+/i, ''); // drop "--" separator
+        }
+
+        // 3. Sanitize the remaining HTML.
+        const frag = sanitizeHTML(rest);
+        const wrap = document.createElement('div');
+        if (frag) wrap.appendChild(frag);
+        const bodyHtml = wrap.innerHTML.trim();
+        // Plain text view for search and card previews — replace <br> with newlines first.
+        wrap.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+        const bodyText = (wrap.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+
+        return { tags, bodyHtml, bodyText };
+      }
+
+      function parseTagsFromLine(line) {
+        const tags = { class: null, category: null, venue: null };
+        if (!line || !line.includes('|')) return tags;
+        for (const partRaw of line.split('|')) {
+          const part = partRaw.trim();
+          if (!part) continue;
+          const lc = part.toLowerCase();
+          const c  = KNOWN.class   .find(v => v.toLowerCase() === lc); if (c)  { tags.class    = c;  continue; }
+          const ca = KNOWN.category.find(v => v.toLowerCase() === lc); if (ca) { tags.category = ca; continue; }
+          const vn = KNOWN.venue   .find(v => v.toLowerCase() === lc); if (vn) { tags.venue    = vn; continue; }
+        }
+        return tags;
+      }
+
+      function decodeEntities(html) {
+        const t = document.createElement('textarea');
+        t.innerHTML = html;
+        return t.value;
+      }
+
+      // Returns a DocumentFragment containing the sanitized HTML, or null.
+      function sanitizeHTML(html) {
+        if (!html) return null;
+        const doc = new DOMParser().parseFromString(
+          '<!DOCTYPE html><body>' + html + '</body>', 'text/html');
+        const frag = document.createDocumentFragment();
+        for (const node of Array.from(doc.body.childNodes)) {
+          const cleaned = cleanNode(node);
+          if (cleaned) frag.appendChild(cleaned);
+        }
+        collapseBreaks(frag);
+        return frag;
+      }
+
+      function cleanNode(node) {
+        if (node.nodeType === 3) return document.createTextNode(node.data);
+        if (node.nodeType !== 1) return null;
+
+        const tag = node.tagName;
+        const kids = Array.from(node.childNodes).map(cleanNode).filter(Boolean);
+
+        if (!ALLOWED_TAGS.has(tag)) {
+          const f = document.createDocumentFragment();
+          kids.forEach(k => f.appendChild(k));
+          return f;
+        }
+
+        const out = document.createElement(tag.toLowerCase());
+
+        if (tag === 'A') {
+          const href = normalizeHref(node.getAttribute('href'), node.textContent);
+          if (href) {
+            out.setAttribute('href', href);
+            out.setAttribute('target', '_blank');
+            out.setAttribute('rel', 'noopener noreferrer');
+          } else {
+            // Couldn't recover a usable URL — unwrap to its text content.
+            const f = document.createDocumentFragment();
+            kids.forEach(k => f.appendChild(k));
+            return f;
+          }
+        }
+
+        kids.forEach(k => out.appendChild(k));
+        return out;
+      }
+
+      // Normalize an <a href>. Returns a safe absolute URL or '' if unusable.
+      // Handles: missing scheme (www.foo.com), Google redirector, raw schemes.
+      function normalizeHref(rawHref, fallbackText) {
+        let href = (rawHref || '').trim();
+        if (!href && fallbackText) href = fallbackText.trim();
+        if (!href) return '';
+        href = unwrapGoogleRedirect(href);
+
+        // Already a usable absolute URL?
+        try {
+          const u = new URL(href);
+          if (ALLOWED_SCHEMES.has(u.protocol)) return href;
+        } catch { /* not absolute */ }
+
+        // Bare domain ("www.recoverytapers.org", "example.org/path") — assume https.
+        if (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/.test(href)) {
+          try {
+            const u = new URL('https://' + href);
+            if (u.hostname.includes('.')) return 'https://' + href;
+          } catch { /* fall through */ }
+        }
+        return '';
+      }
+
+      function unwrapGoogleRedirect(href) {
+        if (!href) return href;
+        try {
+          const u = new URL(href);
+          if (u.hostname === 'www.google.com' && u.pathname === '/url') {
+            const q = u.searchParams.get('q');
+            if (q) return q;
+          }
+        } catch { /* not absolute / not parseable */ }
+        return href;
+      }
+
+      // Collapse 3+ consecutive <br> into 2, and trim leading/trailing <br>.
+      function collapseBreaks(root) {
+        const isBr = (n) => n && n.nodeType === 1 && n.tagName === 'BR';
+        // Trim leading
+        while (root.firstChild && (isBr(root.firstChild) ||
+               (root.firstChild.nodeType === 3 && !root.firstChild.data.trim()))) {
+          root.removeChild(root.firstChild);
+        }
+        // Trim trailing
+        while (root.lastChild && (isBr(root.lastChild) ||
+               (root.lastChild.nodeType === 3 && !root.lastChild.data.trim()))) {
+          root.removeChild(root.lastChild);
+        }
+        // Collapse runs
+        let runCount = 0;
+        let toRemove = [];
+        for (const child of Array.from(root.childNodes)) {
+          if (isBr(child)) {
+            runCount++;
+            if (runCount > 2) toRemove.push(child);
+          } else if (child.nodeType === 3 && !child.data.trim()) {
+            // ignore whitespace-only text in run
+          } else {
+            runCount = 0;
+          }
+        }
+        toRemove.forEach(n => n.remove());
+      }
+
+      // --------------------------- Filtering ----------------------------
+      function eventMatches(ev, f, now) {
+        if (f.class    !== 'all' && ev.tags.class    !== f.class)    return false;
+        if (f.category !== 'all' && ev.tags.category !== f.category) return false;
+        if (f.venue    !== 'all' && ev.tags.venue    !== f.venue)    return false;
+        if (f.dow      !== 'all' && dayOfWeek(ev.start) !== parseInt(f.dow, 10)) return false;
+        if (f.upcomingOnly && ev.end < now)                          return false;
+        if (f.search) {
+          const q = f.search.trim().toLowerCase();
+          if (q) {
+            const hay = `${ev.summary}\n${ev.location}\n${ev.descriptionText}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+        }
+        return true;
+      }
+
+      function applyFilters() {
+        const now = new Date();
+        state.filtered = state.events.filter(ev => eventMatches(ev, state.prefs.filters, now));
+        // Clamp current page; recompute paged slice
+        const pages = totalPages();
+        if (state.prefs.page > pages) state.prefs.page = pages;
+        if (state.prefs.page < 1)     state.prefs.page = 1;
+        paginate();
+      }
+
+      function totalPages() {
+        const ps = state.prefs.pageSize;
+        if (!ps || ps === 0) return 1;
+        return Math.max(1, Math.ceil(state.filtered.length / ps));
+      }
+
+      function paginate() {
+        const ps = state.prefs.pageSize;
+        if (!ps || ps === 0) {
+          state.paged = state.filtered.slice();
+        } else {
+          const start = (state.prefs.page - 1) * ps;
+          state.paged = state.filtered.slice(start, start + ps);
+        }
+      }
+
+      // Count how many events would match if a given chip in a dimension
+      // were active (other filters held constant). "all" = match all in dim.
+      function computeChipCounts() {
+        const now = new Date();
+        const counts = { class: {}, category: {}, venue: {}, dow: {} };
+        for (const dim of ['class', 'category', 'venue']) {
+          const f = Object.assign({}, state.prefs.filters, { [dim]: 'all' });
+          const subset = state.events.filter(ev => eventMatches(ev, f, now));
+          counts[dim].all = subset.length;
+          for (const v of KNOWN[dim]) {
+            counts[dim][v] = subset.filter(ev => ev.tags[dim] === v).length;
+          }
+        }
+        // Day-of-week counts
+        const fd = Object.assign({}, state.prefs.filters, { dow: 'all' });
+        const subset = state.events.filter(ev => eventMatches(ev, fd, now));
+        counts.dow.all = subset.length;
+        for (let i = 0; i < 7; i++) {
+          counts.dow[String(i)] = subset.filter(ev => dayOfWeek(ev.start) === i).length;
+        }
+        return counts;
+      }
+
+      function renderChipCounts() {
+        const counts = computeChipCounts();
+        $$('.chips').forEach(group => {
+          const kind = group.dataset.filter;
+          group.querySelectorAll('.chip').forEach(btn => {
+            // Cache the original label once so re-renders don't double up "(N)".
+            if (!btn.dataset.label) btn.dataset.label = btn.textContent.trim();
+            const v = btn.dataset.value;
+            const c = (counts[kind] && counts[kind][v] !== undefined) ? counts[kind][v] : 0;
+            btn.dataset.count = String(c);
+            btn.textContent = '';
+            btn.appendChild(document.createTextNode(btn.dataset.label));
+            btn.appendChild(el('span', { class: 'chip-count' }, '(' + c + ')'));
+          });
+        });
+      }
+
+      // --------------------------- Rendering ----------------------------
+      function render() {
+        renderList();
+        renderCalendar();
+        renderChipCounts();
+        const n = state.filtered.length;
+        const total = state.events.length;
+        $('#count').textContent =
+          (n === total)
+            ? `${n} event${n === 1 ? '' : 's'}`
+            : `${n} of ${total} events`;
+      }
+
+      function renderList() {
+        const wrap = $('#events');
+        wrap.innerHTML = '';
+        if (state.filtered.length === 0) {
+          wrap.appendChild(el('p', { class: 'muted' },
+            state.events.length === 0
+              ? 'No events loaded yet.'
+              : 'No events match your filters. Try resetting them.'));
+          renderPagination();
+          return;
+        }
+
+        const now = new Date();
+        let lastMonthKey = null;
+        for (const ev of state.paged) {
+          const mk = fmt(ev.start, { month: 'long', year: 'numeric' });
+          if (mk !== lastMonthKey) {
+            wrap.appendChild(el('h3', { class: 'month-heading' }, mk));
+            lastMonthKey = mk;
+          }
+          wrap.appendChild(renderCard(ev, now));
+        }
+        renderPagination();
+      }
+
+      function renderPagination() {
+        const wrap = $('#pagination');
+        wrap.innerHTML = '';
+        const pages = totalPages();
+        if (pages <= 1) return;
+        const cur = state.prefs.page;
+
+        const goto = (n) => {
+          state.prefs.page = n;
+          savePrefs();
+          paginate();
+          renderList();
+          // Scroll list back to top of events on page change.
+          $('#view-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        const btn = (n, label, opts) => el('button', Object.assign({
+          type: 'button',
+          class: 'page-btn' + (n === cur ? ' current' : ''),
+          'aria-current': n === cur ? 'page' : null,
+          onClick: () => goto(n),
+        }, opts || {}), label || String(n));
+
+        wrap.appendChild(btn(Math.max(1, cur - 1), '‹', { disabled: cur === 1 ? '' : null, 'aria-label': 'Previous page' }));
+
+        // Compact page list: 1 … (cur-1) cur (cur+1) … last
+        const showSet = new Set([1, pages, cur - 1, cur, cur + 1]);
+        let lastShown = 0;
+        for (let i = 1; i <= pages; i++) {
+          if (!showSet.has(i)) continue;
+          if (i - lastShown > 1) wrap.appendChild(el('span', { class: 'page-ellipsis' }, '…'));
+          wrap.appendChild(btn(i));
+          lastShown = i;
+        }
+
+        wrap.appendChild(btn(Math.min(pages, cur + 1), '›', { disabled: cur === pages ? '' : null, 'aria-label': 'Next page' }));
+      }
+
+      function renderCard(ev, now) {
+        now = now || new Date();
+        const isPast = ev.end < now;
+        const card = el('article', {
+          class: 'event-card' + (isPast ? ' past' : ''),
+          onClick: () => openDialog(ev),
+          tabindex: '0',
+          role: 'button',
+          'aria-label': ev.summary,
+          onKeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDialog(ev); } },
+        });
+        if (ev.tags.class) card.style.setProperty('--accent', accentFor(ev.tags.class));
+
+        const dateBlock = el('div', { class: 'date-block' },
+          el('div', { class: 'month' }, fmt(ev.start, { month: 'short' }).toUpperCase()),
+          el('div', { class: 'day'   }, fmt(ev.start, { day: 'numeric' })),
+          el('div', { class: 'wday'  }, fmt(ev.start, { weekday: 'short' })),
+        );
+        card.appendChild(dateBlock);
+
+        const main = el('div', { class: 'event-main' });
+        const titleRow = el('div', { class: 'title-row' });
+        const h3 = el('h3');
+        const q = state.prefs.filters.search.trim();
+        if (q) h3.innerHTML = highlightSearch(ev.summary, q);
+        else h3.textContent = ev.summary;
+        titleRow.appendChild(h3);
+        if (ev.recurring) {
+          titleRow.appendChild(el('span', {
+            class: 'rec-badge',
+            title: ev.rruleSummary || 'Recurring event',
+          }, '🔁'));
+        }
+        const rel = relativeHint(ev.start, now, isPast);
+        if (rel) titleRow.appendChild(el('span', { class: 'rel ' + rel.cls }, rel.text));
+        main.appendChild(titleRow);
+
+        const meta = el('div', { class: 'event-meta' });
+        meta.appendChild(el('span', { class: 'meta-item' }, '🕒 ' + formatTimeRange(ev)));
+        if (ev.location) {
+          meta.appendChild(renderLocationMeta(ev.location, /*compact=*/true));
+        }
+        main.appendChild(meta);
+
+        if (ev.descriptionText) {
+          const preview = el('p', { class: 'event-preview' });
+          const snippet = previewSnippet(ev.descriptionText, q, 140);
+          if (q) preview.innerHTML = highlightSearch(snippet, q);
+          else   preview.textContent = snippet;
+          main.appendChild(preview);
+        }
+
+        const tags = el('div', { class: 'tags' });
+        if (ev.tags.class)    tags.appendChild(el('span', { class: `tag class-${ev.tags.class}` }, ev.tags.class));
+        if (ev.tags.category) tags.appendChild(el('span', { class: 'tag cat' }, ev.tags.category));
+        if (ev.tags.venue)    tags.appendChild(el('span', { class: `tag venue-${ev.tags.venue}` }, ev.tags.venue));
+        if (isPast)           tags.appendChild(el('span', { class: 'tag past-tag' }, 'Past'));
+        main.appendChild(tags);
+
+        card.appendChild(main);
+        return card;
+      }
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+          '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+        })[c]);
+      }
+      function highlightSearch(text, q) {
+        const safe = escapeHtml(text);
+        if (!q) return safe;
+        const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        return safe.replace(re, m => `<mark>${m}</mark>`);
+      }
+      // For previews: snap window around the first search-hit so the highlight is visible.
+      function previewSnippet(text, q, maxLen) {
+        if (!text) return '';
+        if (!q || text.length <= maxLen) return truncate(text, maxLen);
+        const idx = text.toLowerCase().indexOf(q.toLowerCase());
+        if (idx < 0) return truncate(text, maxLen);
+        const pad = Math.max(20, Math.floor((maxLen - q.length) / 2));
+        let start = Math.max(0, idx - pad);
+        let end   = Math.min(text.length, start + maxLen);
+        if (end - start < maxLen) start = Math.max(0, end - maxLen);
+        return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+      }
+
+      function relativeHint(date, now, isPast) {
+        now = now || new Date();
+        const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const diffDays = Math.round((startOf(date) - startOf(now)) / (24*3600*1000));
+        if (isPast && diffDays < 0) return null; // "Past" badge handles it
+        if (diffDays === 0) return { text: 'Today',    cls: 'rel-today'    };
+        if (diffDays === 1) return { text: 'Tomorrow', cls: 'rel-tomorrow' };
+        if (diffDays > 1 && diffDays <= 7) return { text: `In ${diffDays} days`, cls: 'rel-soon' };
+        return null;
+      }
+
+      function accentFor(cls) {
+        if (cls === 'AAGeek') return 'var(--color-aageek)';
+        if (cls === 'NETA65') return 'var(--color-neta65)';
+        if (cls === 'AAWSNY') return 'var(--color-aawsny)';
+        return 'var(--pico-primary-background)';
+      }
+
+      // Time-zone abbreviation for a given moment in the active TZ.
+      // (E.g. "CDT" in summer Chicago, "EST" in winter NY, "GMT+5:30" for India.)
+      function tzAbbr(date) {
+        try {
+          const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: TZ(), timeZoneName: 'short',
+          }).formatToParts(date);
+          const t = parts.find(p => p.type === 'timeZoneName');
+          return t ? t.value : '';
+        } catch { return ''; }
+      }
+
+      function formatTimeRange(ev) {
+        if (ev.isAllDay) return 'All day';
+        const sameDay = isSameDay(ev.start, ev.end);
+        const startStr = fmt(ev.start, { hour: 'numeric', minute: '2-digit' });
+        const endStr   = sameDay
+          ? fmt(ev.end, { hour: 'numeric', minute: '2-digit' })
+          : fmt(ev.end, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        const abbr = tzAbbr(ev.start);
+        return `${startStr} – ${endStr}` + (abbr ? ` ${abbr}` : '');
+      }
+
+      // ---------------------- Location rendering ------------------------
+      // Returns the URL's protocol (e.g. "https:") if it's an allow-listed
+      // scheme, otherwise ''. This is the single gate-keeper for "is link?".
+      function safeUrlProtocol(s) {
+        try {
+          const u = new URL(s);
+          return ALLOWED_SCHEMES.has(u.protocol) ? u.protocol : '';
+        } catch { return ''; }
+      }
+      function isZoomMeeting(s) { return /zoom\.us|zoommtg:|zoomus:/i.test(s); }
+
+      function locationLabel(loc, proto) {
+        if (!proto) return loc;
+        if (isZoomMeeting(loc)) return 'Join Zoom Meeting';
+        try {
+          const u = new URL(loc);
+          return u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : '');
+        } catch { return loc; }
+      }
+
+      function renderLocationMeta(loc, compact) {
+        const wrap = el('span', { class: 'meta-item meta-loc' });
+        const proto = safeUrlProtocol(loc);
+        if (proto) {
+          const isWeb = proto === 'http:' || proto === 'https:';
+          const label = locationLabel(loc, proto);
+          const a = el('a', {
+            href: loc,
+            target: isWeb ? '_blank' : null,
+            rel: 'noopener noreferrer',
+            onClick: (e) => e.stopPropagation(),
+            title: loc,
+          }, '🔗 ', compact ? truncate(label, 40) : label);
+          wrap.appendChild(a);
+        } else {
+          const text = compact ? truncate(loc, 80) : loc;
+          const a = el('a', {
+            href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc),
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            onClick: (e) => e.stopPropagation(),
+            title: 'Open in Google Maps: ' + loc,
+          }, '📍 ', text);
+          wrap.appendChild(a);
+        }
+        return wrap;
+      }
+
+      // ------------------------ Calendar view ---------------------------
+      function renderCalendar() {
+        // Sync mode toggle UI
+        $$('.cal-mode button').forEach(b =>
+          b.classList.toggle('active', b.dataset.mode === state.prefs.calMode));
+
+        if (state.prefs.calMode === 'week') {
+          $('#cal-grid').hidden = true;
+          $('#cal-week').hidden = false;
+          renderWeekView();
+        } else {
+          $('#cal-grid').hidden = false;
+          $('#cal-week').hidden = true;
+          renderMonthView();
+        }
+      }
+
+      function renderMonthView() {
+        const ref = state.calRef;
+        const year = ref.getFullYear();
+        const month = ref.getMonth();
+        const first = new Date(year, month, 1);
+        const startDow = first.getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const cells = [];
+        for (let i = startDow - 1; i >= 0; i--) {
+          cells.push({ date: new Date(year, month, -i), otherMonth: true });
+        }
+        for (let i = 1; i <= daysInMonth; i++) {
+          cells.push({ date: new Date(year, month, i), otherMonth: false });
+        }
+        while (cells.length % 7 !== 0) {
+          const last = cells[cells.length - 1].date;
+          cells.push({
+            date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1),
+            otherMonth: true,
+          });
+        }
+
+        $('#cal-title').textContent = fmt(first, { month: 'long', year: 'numeric' });
+
+        const grid = $('#cal-grid');
+        grid.innerHTML = '';
+        for (const d of ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']) {
+          grid.appendChild(el('div', { class: 'dow' }, d));
+        }
+
+        const today = new Date();
+        const byDay = bucketByDay(state.filtered);
+        const MAX_BARS = 2;
+
+        for (const cell of cells) {
+          const dayKeyStr = dayKey(cell.date);
+          const dayEvents = byDay.get(dayKeyStr) || [];
+          const classes = [
+            'cal-cell',
+            cell.otherMonth ? 'other-month' : '',
+            isSameDay(cell.date, today) ? 'today' : '',
+            state.selectedDay && isSameDay(cell.date, state.selectedDay) ? 'selected' : '',
+            dayEvents.length ? 'has-events' : '',
+          ].filter(Boolean).join(' ');
+
+          const cellEl = el('div', {
+            class: classes,
+            onClick: () => { state.selectedDay = cell.date; renderCalendar(); },
+            'aria-label': fmt(cell.date, { weekday: 'long', month: 'long', day: 'numeric' }) +
+              (dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}` : ''),
+          });
+          cellEl.appendChild(el('span', { class: 'num' }, String(cell.date.getDate())));
+
+          // Count badge for packed days
+          if (dayEvents.length > MAX_BARS + 1) {
+            cellEl.appendChild(el('span', { class: 'cal-count-badge', title: dayEvents.length + ' events' }, String(dayEvents.length)));
+          }
+
+          // Event bars (up to MAX_BARS)
+          const bars = el('div', { class: 'cal-bars' });
+          const shown = dayEvents.slice(0, MAX_BARS);
+          for (const ev of shown) {
+            const evStartKey = dayKey(ev.start);
+            const evEndKey   = dayKey(ev.end);
+            const adjustedEnd = (ev.isAllDay && ev.end > ev.start &&
+                                 ev.end.getHours() === 0 && ev.end.getMinutes() === 0)
+              ? dayKey(new Date(ev.end.getTime() - 1)) : evEndKey;
+            const isStart = dayKeyStr === evStartKey;
+            const isEnd   = dayKeyStr === adjustedEnd;
+            let span = '';
+            if (evStartKey !== adjustedEnd) {
+              if (isStart) span = 'bar-start';
+              else if (isEnd) span = 'bar-end';
+              else span = 'bar-mid';
+            }
+            const cls = ev.tags.class ? `class-${ev.tags.class}` : '';
+            const label = isStart
+              ? truncate(ev.summary, 18)
+              : el('span', { class: 'bar-cont' }, '…');
+            const bar = el('div', {
+              class: ['cal-bar', cls, span].filter(Boolean).join(' '),
+              title: ev.summary + (ev.tags.class ? ` · ${ev.tags.class}` : ''),
+              onClick: (e) => { e.stopPropagation(); openDialog(ev); },
+            });
+            if (typeof label === 'string') bar.textContent = label;
+            else bar.appendChild(label);
+            bars.appendChild(bar);
+          }
+          if (dayEvents.length > MAX_BARS) {
+            const more = el('div', {
+              class: 'cal-more',
+              onClick: (e) => { e.stopPropagation(); state.selectedDay = cell.date; renderCalendar(); },
+            }, `+${dayEvents.length - MAX_BARS} more`);
+            bars.appendChild(more);
+          }
+          cellEl.appendChild(bars);
+          grid.appendChild(cellEl);
+        }
+
+        renderDayEvents(byDay);
+      }
+
+      function renderWeekView() {
+        const ref = state.selectedDay || state.calRef;
+        // Find Sunday of this week
+        const sun = new Date(ref);
+        sun.setDate(sun.getDate() - sun.getDay());
+        sun.setHours(0, 0, 0, 0);
+
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(sun); d.setDate(sun.getDate() + i); return d;
+        });
+
+        const sat = days[6];
+        const sameMonth = sun.getMonth() === sat.getMonth();
+        $('#cal-title').textContent = sameMonth
+          ? `${fmt(sun, { month:'short', day:'numeric' })} – ${fmt(sat, { day:'numeric', year:'numeric' })}`
+          : `${fmt(sun, { month:'short', day:'numeric' })} – ${fmt(sat, { month:'short', day:'numeric', year:'numeric' })}`;
+
+        const week = $('#cal-week');
+        week.innerHTML = '';
+        const today = new Date();
+        const byDay = bucketByDay(state.filtered);
+
+        for (const d of days) {
+          const isToday = isSameDay(d, today);
+          const dayEvents = byDay.get(dayKey(d)) || [];
+          const cell = el('div', {
+            class: 'week-cell' + (isToday ? ' today' : ''),
+            'aria-label': fmt(d, { weekday: 'long', month:'long', day:'numeric' }),
+          });
+          cell.appendChild(el('div', { class: 'week-day-label' },
+            fmt(d, { weekday: 'short' }) + ' ' + fmt(d, { day: 'numeric' })));
+          if (dayEvents.length === 0) {
+            cell.appendChild(el('span', { class: 'muted', style: { fontSize: '.72rem' } }, '—'));
+          } else {
+            for (const ev of dayEvents) {
+              const cls = ev.tags.class ? `class-${ev.tags.class}` : '';
+              const item = el('div', {
+                class: 'week-event ' + cls,
+                onClick: () => openDialog(ev),
+                title: ev.summary,
+              });
+              item.appendChild(el('span', { class: 'we-time' },
+                ev.isAllDay ? 'All day' : fmt(ev.start, { hour:'numeric', minute:'2-digit' })));
+              item.appendChild(el('span', { class: 'we-title' }, ev.summary));
+              cell.appendChild(item);
+            }
+          }
+          week.appendChild(cell);
+        }
+
+        renderDayEvents(byDay);
+      }
+
+      function renderDayEvents(byDay) {
+        const list = $('#cal-day-events');
+        list.innerHTML = '';
+        if (state.selectedDay) {
+          const dayEvents = byDay.get(dayKey(state.selectedDay)) || [];
+          list.appendChild(el('h3', null,
+            fmt(state.selectedDay, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) +
+            ` · ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}`));
+          if (dayEvents.length === 0) {
+            list.appendChild(el('p', { class: 'muted' }, 'No events for this day.'));
+          } else {
+            for (const ev of dayEvents) list.appendChild(renderCard(ev));
+          }
+        }
+      }
+
+      // Convert YYYY-MM-DD ↔ Date in UTC for TZ-agnostic day iteration.
+      function isoKeyToUtcDate(key) {
+        const [y, m, d] = key.split('-').map(Number);
+        return new Date(Date.UTC(y, m - 1, d));
+      }
+      function utcDateToIsoKey(d) {
+        return d.getUTCFullYear() + '-' +
+               String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getUTCDate()).padStart(2, '0');
+      }
+
+      function bucketByDay(events) {
+        const map = new Map();
+        for (const ev of events) {
+          // Compute start and end day-keys in the *active* TZ — this is what
+          // the user sees in their calendar.
+          const startKey = dayKey(ev.start);
+          let   endKey   = dayKey(ev.end);
+          // All-day events end at the following midnight (exclusive); back off one day.
+          if (ev.isAllDay && ev.end > ev.start &&
+              ev.end.getHours() === 0 && ev.end.getMinutes() === 0) {
+            endKey = dayKey(new Date(ev.end.getTime() - 1));
+          }
+          // Iterate keys via UTC date math (keys are ISO YYYY-MM-DD strings).
+          const cursor = isoKeyToUtcDate(startKey);
+          const endTs  = isoKeyToUtcDate(endKey).getTime();
+          let safety = 0;
+          while (cursor.getTime() <= endTs && safety < 400) {
+            safety++;
+            const key = utcDateToIsoKey(cursor);
+            const arr = map.get(key);
+            if (arr) arr.push(ev); else map.set(key, [ev]);
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+          }
+        }
+        return map;
+      }
+
+      // ----------------------- Notifications ----------------------------
+      async function ensureNotificationPermission() {
+        if (typeof Notification === 'undefined') {
+          alert('Notifications are not supported in this browser.');
+          return false;
+        }
+        if (Notification.permission === 'granted') return true;
+        if (Notification.permission === 'denied') {
+          alert('Notification permission was previously denied. Please enable it in your browser site settings.');
+          return false;
+        }
+        try {
+          const p = await Notification.requestPermission();
+          return p === 'granted';
+        } catch { return false; }
+      }
+
+      function clearNotifications() {
+        state.notifTimers.forEach(t => clearTimeout(t));
+        state.notifTimers = [];
+      }
+
+      function scheduleNotifications() {
+        clearNotifications();
+        if (!state.prefs.notify.enabled) return;
+        if (typeof Notification === 'undefined') return;
+        if (Notification.permission !== 'granted') return;
+
+        const leadMs   = state.prefs.notify.leadMinutes * 60 * 1000;
+        const now      = Date.now();
+        const lookhead = 24 * 60 * 60 * 1000; // 24h scheduling window
+
+        for (const ev of state.events) {
+          const fireAt = ev.start.getTime() - leadMs;
+          if (fireAt <= now) continue;
+          if (fireAt - now > lookhead) continue;
+          const summary = ev.summary;
+          const body    = (ev.tags.venue ? ev.tags.venue + ' · ' : '') +
+                          fmt(ev.start, { hour:'numeric', minute:'2-digit' });
+          const t = setTimeout(() => {
+            try { new Notification(summary, { body, tag: ev.uid }); } catch {}
+          }, fireAt - now);
+          state.notifTimers.push(t);
+        }
+      }
+
+      // ----------------------- ICS export -------------------------------
+      function buildIcsFile(ev) {
+        const esc = (s) => String(s || '')
+          .replace(/\\/g, '\\\\').replace(/;/g, '\\;')
+          .replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+        const ical = (d) => {
+          const p = (n) => String(n).padStart(2, '0');
+          return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
+        };
+        const dateOnly = (d) => {
+          const p = (n) => String(n).padStart(2, '0');
+          return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;
+        };
+        const lines = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//AAGeek//Events SPA//EN',
+          'CALSCALE:GREGORIAN',
+          'BEGIN:VEVENT',
+          `UID:${ev.uid || (Date.now() + '@aageek')}`,
+          `DTSTAMP:${ical(new Date())}`,
+          ev.isAllDay
+            ? `DTSTART;VALUE=DATE:${dateOnly(ev.start)}`
+            : `DTSTART:${ical(ev.start)}`,
+          ev.isAllDay
+            ? `DTEND;VALUE=DATE:${dateOnly(ev.end)}`
+            : `DTEND:${ical(ev.end)}`,
+          `SUMMARY:${esc(ev.summary)}`,
+          ev.location        ? `LOCATION:${esc(ev.location)}` : null,
+          ev.descriptionText ? `DESCRIPTION:${esc(ev.descriptionText)}` : null,
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].filter(Boolean);
+        return lines.join('\r\n');
+      }
+
+      function downloadIcs(ev) {
+        const blob = new Blob([buildIcsFile(ev)], { type: 'text/calendar;charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const safeName = (ev.summary || 'event')
+          .replace(/[^\w-]+/g, '_').replace(/_+/g, '_').slice(0, 60);
+        const datePart = ev.start.toISOString().slice(0,10);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeName}_${datePart}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
+
+      // ----------------------- RRULE summary ----------------------------
+      const DOW_FULL = { SU:'Sunday', MO:'Monday', TU:'Tuesday', WE:'Wednesday', TH:'Thursday', FR:'Friday', SA:'Saturday' };
+      const DOW_SHORT= { SU:'Sun', MO:'Mon', TU:'Tue', WE:'Wed', TH:'Thu', FR:'Fri', SA:'Sat' };
+      function summarizeRRule(ve) {
+        try {
+          const rr = ve.getFirstPropertyValue('rrule');
+          if (!rr) return '';
+          const freq = (rr.freq || '').toUpperCase();
+          const interval = rr.interval || 1;
+          const byday = rr.parts && rr.parts.BYDAY ? rr.parts.BYDAY : null;
+          if (freq === 'WEEKLY') {
+            if (byday && byday.length) {
+              const days = byday.map(d => DOW_SHORT[d.slice(-2)] || d).join(', ');
+              return interval === 1 ? `Every ${days}` : `Every ${interval} wks · ${days}`;
+            }
+            return interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+          }
+          if (freq === 'MONTHLY') {
+            if (byday && byday.length) {
+              const tok = byday[0];
+              const ord = parseInt(tok.slice(0, -2), 10);
+              const day = DOW_FULL[tok.slice(-2)] || tok;
+              const ordName = { '-1':'last', 1:'first', 2:'second', 3:'third', 4:'fourth', 5:'fifth' }[String(ord)] || `${ord}th`;
+              return `Monthly · ${ordName} ${day}`;
+            }
+            return interval === 1 ? 'Monthly' : `Every ${interval} months`;
+          }
+          if (freq === 'DAILY')  return interval === 1 ? 'Daily'  : `Every ${interval} days`;
+          if (freq === 'YEARLY') return interval === 1 ? 'Yearly' : `Every ${interval} years`;
+          return '';
+        } catch { return ''; }
+      }
+
+      // ----------------------------- Dialog -----------------------------
+      function openDialog(ev) {
+        state.lastFocused = document.activeElement;
+        $('#dlg-title').textContent = ev.summary;
+
+        const tags = $('#dlg-tags');
+        tags.innerHTML = '';
+        if (ev.tags.class)    tags.appendChild(el('span', { class: `tag class-${ev.tags.class}` }, ev.tags.class));
+        if (ev.tags.category) tags.appendChild(el('span', { class: 'tag cat' }, ev.tags.category));
+        if (ev.tags.venue)    tags.appendChild(el('span', { class: `tag venue-${ev.tags.venue}` }, ev.tags.venue));
+        if (ev.end < new Date()) tags.appendChild(el('span', { class: 'tag past-tag' }, 'Past'));
+
+        const meta = $('#dlg-meta');
+        meta.innerHTML = '';
+        meta.appendChild(el('div', null,
+          el('span', { class: 'meta-icon' }, '🗓'),
+          el('span', null,
+            fmt(ev.start, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))));
+        meta.appendChild(el('div', null,
+          el('span', { class: 'meta-icon' }, '⏰'),
+          el('span', null, ev.isAllDay ? 'All day' : formatTimeRange(ev))));
+        if (ev.recurring && ev.rruleSummary) {
+          meta.appendChild(el('div', null,
+            el('span', { class: 'meta-icon' }, '🔁'),
+            el('span', null, ev.rruleSummary)));
+        }
+        if (ev.location) {
+          const row = el('div');
+          row.appendChild(renderLocationMeta(ev.location, false));
+          meta.appendChild(row);
+        }
+
+        const body = $('#dlg-body');
+        body.innerHTML = '';
+        if (ev.descriptionHtml) {
+          const wrap = el('div', { class: 'desc-html' });
+          wrap.innerHTML = ev.descriptionHtml; // already sanitized
+          body.appendChild(wrap);
+        } else {
+          body.appendChild(el('em', { class: 'muted' }, 'No additional details.'));
+        }
+
+        const link = $('#dlg-link');
+        const safeUrl = (ev.url && safeUrlProtocol(ev.url)) ? ev.url : '';
+        link.href = safeUrl || GCAL_HTML_URL;
+        link.textContent = safeUrl ? 'Open event link' : 'Open in Google Calendar';
+
+        const addBtn = $('#dlg-add');
+        addBtn.href = buildGcalAddUrl(ev);
+
+        const icsBtn = $('#dlg-ics');
+        icsBtn.onclick = () => downloadIcs(ev);
+
+        const dlg = $('#event-dialog');
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        else dlg.setAttribute('open', '');
+      }
+
+      function buildGcalAddUrl(ev) {
+        const toGcalDate = (d, allDay) => {
+          if (allDay) {
+            const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+            return `${y}${m}${day}`;
+          }
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+        };
+        const dates = `${toGcalDate(ev.start, ev.isAllDay)}/${toGcalDate(ev.end, ev.isAllDay)}`;
+        const params = new URLSearchParams({
+          action: 'TEMPLATE',
+          text: ev.summary,
+          dates,
+          details: ev.descriptionText || '',
+          location: ev.location || '',
+          ctz: TZ(),
+        });
+        return `https://calendar.google.com/calendar/render?${params.toString()}`;
+      }
+
+      // ----------------------------- Wiring -----------------------------
+      function refilter() { applyFilters(); render(); savePrefs(); }
+
+      function resetFilters() {
+        state.prefs.filters = JSON.parse(JSON.stringify(DEFAULT_PREFS.filters));
+        state.prefs.page = 1;
+        syncFiltersUI();
+        refilter();
+      }
+
+      function wireFilters() {
+        $$('.chips').forEach(group => {
+          const kind = group.dataset.filter;
+          group.addEventListener('click', (e) => {
+            const btn = e.target.closest('.chip');
+            if (!btn) return;
+            group.querySelectorAll('.chip').forEach(b => b.classList.toggle('active', b === btn));
+            state.prefs.filters[kind] = btn.dataset.value;
+            state.prefs.page = 1;
+            refilter();
+          });
+        });
+
+        let searchTimer;
+        $('#search').addEventListener('input', (e) => {
+          clearTimeout(searchTimer);
+          const val = e.target.value;
+          searchTimer = setTimeout(() => {
+            state.prefs.filters.search = val;
+            state.prefs.page = 1;
+            refilter();
+          }, 120);
+        });
+
+        $('#upcoming-only').addEventListener('change', (e) => {
+          state.prefs.filters.upcomingOnly = e.target.checked;
+          state.prefs.page = 1;
+          refilter();
+        });
+
+        $('#page-size').addEventListener('change', (e) => {
+          const v = parseInt(e.target.value, 10);
+          if (![10,20,30,50,100,0].includes(v)) return;
+          state.prefs.pageSize = v;
+          state.prefs.page = 1;
+          refilter();
+        });
+
+        $('#reset-filters').addEventListener('click', resetFilters);
+        $('#refresh').addEventListener('click', loadCalendar);
+      }
+
+      function switchView(name) {
+        if (!['list','calendar','embed'].includes(name)) name = 'list';
+        state.prefs.view = name;
+        savePrefs();
+        $$('.tab').forEach(t => {
+          const active = t.dataset.view === name;
+          t.classList.toggle('active', active);
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        $('#view-list')    .classList.toggle('hidden', name !== 'list');
+        $('#view-calendar').classList.toggle('hidden', name !== 'calendar');
+        $('#view-embed')   .classList.toggle('hidden', name !== 'embed');
+      }
+
+      function wireViews() {
+        $$('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+      }
+
+      function wireCalendar() {
+        $('#cal-prev').addEventListener('click', () => {
+          if (state.prefs.calMode === 'week') {
+            const r = state.selectedDay || state.calRef;
+            const d = new Date(r); d.setDate(d.getDate() - 7);
+            state.selectedDay = d;
+            state.calRef = firstOfMonth(d);
+          } else {
+            state.calRef = new Date(state.calRef.getFullYear(), state.calRef.getMonth() - 1, 1);
+          }
+          renderCalendar();
+        });
+        $('#cal-next').addEventListener('click', () => {
+          if (state.prefs.calMode === 'week') {
+            const r = state.selectedDay || state.calRef;
+            const d = new Date(r); d.setDate(d.getDate() + 7);
+            state.selectedDay = d;
+            state.calRef = firstOfMonth(d);
+          } else {
+            state.calRef = new Date(state.calRef.getFullYear(), state.calRef.getMonth() + 1, 1);
+          }
+          renderCalendar();
+        });
+        $('#cal-today').addEventListener('click', () => {
+          state.calRef = firstOfMonth(new Date());
+          state.selectedDay = new Date();
+          renderCalendar();
+        });
+        $$('.cal-mode button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            if (!['month','week'].includes(mode)) return;
+            state.prefs.calMode = mode;
+            savePrefs();
+            renderCalendar();
+          });
+        });
+      }
+
+      function wireDialog() {
+        // Generic handler for any <dialog> with class event-dialog
+        $$('dialog.event-dialog').forEach(dlg => {
+          dlg.addEventListener('click', (e) => {
+            const t = e.target;
+            if (t === dlg) { dlg.close(); return; }
+            if (t.closest('[data-close]')) dlg.close();
+          });
+          dlg.addEventListener('close', () => {
+            // Return focus to the element that opened the dialog.
+            if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
+              try { state.lastFocused.focus(); } catch { /* ignore */ }
+            }
+          });
+        });
+        // Help button
+        $('#help-btn').addEventListener('click', showHelp);
+      }
+
+      function showHelp() {
+        state.lastFocused = document.activeElement;
+        const dlg = $('#help-dialog');
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        else dlg.setAttribute('open', '');
+      }
+
+      function showSettings() {
+        state.lastFocused = document.activeElement;
+        // The "local" radio represents LOCAL_TZ; the "default" radio represents
+        // the calendar's published TZ (America/Chicago). Anything not exactly
+        // matching DEFAULT_TZ is treated as the user's local view.
+        const showAsLocal = state.prefs.timeZone !== DEFAULT_TZ;
+        $$('input[name="tz"]').forEach(r => r.checked = (r.value === (showAsLocal ? 'local' : 'default')));
+        $('#local-tz-name').textContent = '(' + LOCAL_TZ + ')';
+        $('#notify-enabled').checked = !!state.prefs.notify.enabled;
+        $('#notify-lead').value = String(state.prefs.notify.leadMinutes);
+        const dlg = $('#settings-dialog');
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        else dlg.setAttribute('open', '');
+      }
+
+      function wireSettings() {
+        $('#settings-btn').addEventListener('click', showSettings);
+
+        $$('input[name="tz"]').forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            const newTz = e.target.value === 'local' ? LOCAL_TZ : DEFAULT_TZ;
+            state.prefs.timeZone   = newTz;
+            state.prefs.tzExplicit = true;        // user has now picked
+            savePrefs();
+            // Re-render everything since dates are TZ-dependent
+            applyFilters();
+            render();
+          });
+        });
+
+        $('#notify-enabled').addEventListener('change', async (e) => {
+          if (e.target.checked) {
+            const ok = await ensureNotificationPermission();
+            if (!ok) { e.target.checked = false; return; }
+          }
+          state.prefs.notify.enabled = e.target.checked;
+          savePrefs();
+          scheduleNotifications();
+        });
+
+        $('#notify-lead').addEventListener('change', (e) => {
+          const v = parseInt(e.target.value, 10);
+          if (![5,15,30,60,1440].includes(v)) return;
+          state.prefs.notify.leadMinutes = v;
+          savePrefs();
+          scheduleNotifications();
+        });
+
+        $('#settings-reset').addEventListener('click', () => {
+          if (!confirm('Reset all preferences (filters, view, time zone, reminders)?')) return;
+          state.prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+          savePrefs();
+          $('#settings-dialog').close();
+          syncFiltersUI();
+          switchView(state.prefs.view);
+          applyFilters();
+          render();
+          scheduleNotifications();
+        });
+      }
+
+      // -------------------- Keyboard shortcuts --------------------------
+      function wireKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+          // Ignore when a modifier key is held (avoid hijacking browser shortcuts).
+          if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+          const t = e.target;
+          const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+          const anyDialogOpen = $$('dialog[open]').length > 0;
+
+          // Esc: dialog handler closes dialogs; also clear search if focused.
+          if (e.key === 'Escape') {
+            if (inField && t.id === 'search' && t.value) {
+              t.value = '';
+              state.prefs.filters.search = '';
+              refilter();
+              e.preventDefault();
+            }
+            return;
+          }
+
+          // Don't intercept while typing or while a dialog is open
+          // (the dialog should own keyboard focus).
+          if (inField || anyDialogOpen) return;
+
+          if (e.key === '/') {
+            e.preventDefault();
+            $('#search').focus();
+            $('#search').select();
+            return;
+          }
+          if (e.key === '?') { e.preventDefault(); showHelp(); return; }
+          if (e.key === '1') { switchView('list');     return; }
+          if (e.key === '2') { switchView('calendar'); return; }
+          if (e.key === '3') { switchView('embed');    return; }
+          if (e.key === 'r' || e.key === 'R') { resetFilters(); return; }
+          if (e.key === 'u' || e.key === 'U') {
+            const cb = $('#upcoming-only');
+            cb.checked = !cb.checked;
+            state.prefs.filters.upcomingOnly = cb.checked;
+            refilter();
+            return;
+          }
+          if (state.prefs.view === 'calendar') {
+            if (e.key === 'ArrowLeft')  { e.preventDefault(); $('#cal-prev').click();  return; }
+            if (e.key === 'ArrowRight') { e.preventDefault(); $('#cal-next').click();  return; }
+            if (e.key === 't' || e.key === 'T') { $('#cal-today').click(); return; }
+            if (e.key === 'w' || e.key === 'W') {
+              state.prefs.calMode = state.prefs.calMode === 'month' ? 'week' : 'month';
+              savePrefs();
+              renderCalendar();
+              return;
+            }
+          }
+          if (e.key === ',') { showSettings(); return; }
+          if (e.key === 'p' || e.key === 'P') { window.print(); return; }
+        });
+      }
+
+      // -------------------- Global error handling -----------------------
+      function wireGlobalErrors() {
+        window.addEventListener('error', (e) => {
+          console.error('Uncaught error:', e.error || e.message);
+          setStatus('Something went wrong. See console for details.', { error: true });
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+          console.error('Unhandled promise rejection:', e.reason);
+          // Do not show a status banner here — many rejections are recoverable
+          // (e.g. fetch fallbacks), and loadCalendar already surfaces a banner.
+        });
+      }
+
+      // ------------------------------ Boot ------------------------------
+      function boot() {
+        wireGlobalErrors();
+        loadPrefs();
+        wireFilters();
+        wireViews();
+        wireCalendar();
+        wireDialog();
+        wireSettings();
+        wireKeyboardShortcuts();
+        syncFiltersUI();
+        switchView(state.prefs.view || 'list');   // open to user's preferred view
+        loadCalendar();
+      }
+
+      // This script is at the end of <body>, so the DOM above is already
+      // parsed. The CDN ical.js loads synchronously just before us.
+      try { boot(); }
+      catch (e) {
+        console.error('Boot failed:', e);
+        document.body.insertAdjacentHTML('afterbegin',
+          '<div role="alert" style="padding:1rem;margin:1rem;background:#fee2e2;border:1px solid #f87171;color:#7f1d1d;border-radius:.5rem;font-family:system-ui,sans-serif;">' +
+          '<strong>The events app failed to start.</strong> Open the browser console for details, or ' +
+          '<a href="https://calendar.google.com/calendar/embed?src=ec0c83a6ad02b239927d3c156bff2829935c3e91c4c82baff7119927ccf4cd9d%40group.calendar.google.com&ctz=America%2FChicago" target="_blank" rel="noopener">view the calendar directly</a>.' +
+          '</div>');
+      }
+
+    })();
+  </script>
+</body>
+</html>
