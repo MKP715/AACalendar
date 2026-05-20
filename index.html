@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#131a23" media="(prefers-color-scheme: dark)" />
   <meta name="referrer" content="no-referrer-when-downgrade" />
   <title>AAGeek Events</title>
   <meta name="description" content="AAGeek / NETA65 / AAWSNY events — filter by class, category, and venue." />
@@ -29,103 +29,296 @@
        We add: filter chips, event cards, calendar grid, dialog polish.
        ===================================================================== */
 
+    /* ============================================================
+       Brand-new theme system
+       ------------------------------------------------------------
+       Defines two complete palettes (light & dark) via --aa-* tokens
+       and *overrides Pico's own tokens* so the whole UI — including
+       components Pico paints (inputs, dialogs, links) — follows.
+
+       Dark mode applies when EITHER:
+         (a) user explicitly picked dark in Settings (data-theme="dark"), OR
+         (b) OS prefers dark AND user has not forced light.
+       ============================================================ */
     :root {
+      /* -- Brand accents (class colors, used for dots & bars) -- */
       --color-aageek:    #14b8a6;
       --color-neta65:    #8b5cf6;
       --color-aawsny:    #f59e0b;
       --color-virtual:   #3b82f6;
       --color-physical:  #10b981;
       --color-hybrid:    #ec4899;
-      --shadow-card:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-lift:     0 6px 18px rgba(0,0,0,.10);
 
-      /* Our own text-color tokens. We can't rely on --pico-color inside
-         buttons: Pico v2 redefines --pico-color to --pico-primary-inverse
-         (white) inside every <button>, so `color: var(--pico-color)` on an
-         outline-style button reads as white-on-white in light mode. These
-         tokens are immune because we never re-scope them. */
-      --aa-fg:               #373c44;
-      --aa-fg-strong:        #1c1f25;
-      --aa-fg-muted:         #5d6370;
-      --aa-surface:          #ffffff;
-      --aa-surface-2:        #f4f5f8;
-      --aa-border:           #cfd5e0;
+      /* -- Surfaces & borders (LIGHT) -- */
+      --aa-bg:               #f6f8fb;   /* page background */
+      --aa-surface:          #ffffff;   /* cards, header, dialogs */
+      --aa-surface-2:        #eef1f6;   /* hover surfaces */
+      --aa-surface-3:        #e2e7ef;   /* deeper hover / grid lines */
+      --aa-border:           #d6dae3;
+      --aa-border-strong:    #9aa3b5;
 
-      /* Theme-aware accent tokens — light defaults below; dark overrides
-         further down. Using vars keeps both the system-preference path
-         (no [data-theme] attr) and the user-forced path in sync. */
+      /* -- Text (LIGHT) — all WCAG-AA on white -- */
+      --aa-fg:               #1f2937;   /* primary text — 12.6:1 on #fff */
+      --aa-fg-strong:        #0f172a;   /* headings */
+      --aa-fg-muted:         #4b5563;   /* secondary — 7.6:1 on #fff */
+      --aa-fg-subtle:        #6b7280;   /* tertiary — 4.8:1 on #fff */
+
+      /* -- Brand color (teal — matches AAGeek dot) -- */
+      --aa-brand:            #0d9488;   /* teal-600 */
+      --aa-brand-hover:      #0f766e;   /* teal-700 */
+      --aa-brand-fg:         #ffffff;   /* text on brand bg */
+      --aa-brand-soft-bg:    #ccfbf1;
+      --aa-brand-soft-fg:    #115e59;
+      --aa-link:             #0d9488;
+      --aa-link-hover:       #115e59;
+
+      /* -- Focus, shadow -- */
+      --aa-focus:            rgba(13, 148, 136, .35);
+      --shadow-card:         0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.08);
+      --shadow-lift:         0 8px 24px rgba(15,23,42,.10), 0 2px 6px rgba(15,23,42,.06);
+
+      /* -- Status colors (light) -- */
       --aa-mark-bg:          rgba(252,211,77,.55);
-      --aa-mark-fg:          inherit;
-      --aa-rel-today-bg:     rgba(239,68,68,.15);
-      --aa-rel-today-fg:     #b91c1c;
-      --aa-rel-tomorrow-bg:  rgba(234,179,8,.15);
-      --aa-rel-tomorrow-fg:  #a16207;
-      --aa-rel-soon-bg:      rgba(59,130,246,.12);
-      --aa-rel-soon-fg:      #1d4ed8;
-      --aa-tag-aageek-bg:    rgba(20,184,166,.15);
-      --aa-tag-aageek-fg:    #0f766e;
-      --aa-tag-neta65-bg:    rgba(139,92,246,.15);
-      --aa-tag-neta65-fg:    #6d28d9;
-      --aa-tag-aawsny-bg:    rgba(245,158,11,.18);
-      --aa-tag-aawsny-fg:    #92400e;
-      --aa-tag-cat-bg:       rgba(99,102,241,.14);
-      --aa-tag-cat-fg:       #3730a3;
-      --aa-tag-virtual-bg:   rgba(59,130,246,.15);
-      --aa-tag-virtual-fg:   #1d4ed8;
-      --aa-tag-physical-bg:  rgba(16,185,129,.18);
-      --aa-tag-physical-fg:  #047857;
-      --aa-tag-hybrid-bg:    rgba(236,72,153,.15);
-      --aa-tag-hybrid-fg:    #9d174d;
-      --aa-tag-past-bg:      rgba(107,114,128,.18);
-      --aa-tag-past-fg:      #374151;
+      --aa-mark-fg:          #1f2937;
+      --aa-rel-today-bg:     rgba(239,68,68,.18);
+      --aa-rel-today-fg:     #991b1b;
+      --aa-rel-tomorrow-bg:  rgba(234,179,8,.20);
+      --aa-rel-tomorrow-fg:  #854d0e;
+      --aa-rel-soon-bg:      rgba(59,130,246,.16);
+      --aa-rel-soon-fg:      #1e40af;
+
+      /* -- Tag chips (filter result counts) -- */
+      --aa-tag-aageek-bg:    rgba(20,184,166,.18);
+      --aa-tag-aageek-fg:    #115e59;
+      --aa-tag-neta65-bg:    rgba(139,92,246,.18);
+      --aa-tag-neta65-fg:    #5b21b6;
+      --aa-tag-aawsny-bg:    rgba(245,158,11,.22);
+      --aa-tag-aawsny-fg:    #78350f;
+      --aa-tag-cat-bg:       rgba(99,102,241,.18);
+      --aa-tag-cat-fg:       #312e81;
+      --aa-tag-virtual-bg:   rgba(59,130,246,.18);
+      --aa-tag-virtual-fg:   #1e40af;
+      --aa-tag-physical-bg:  rgba(16,185,129,.20);
+      --aa-tag-physical-fg:  #065f46;
+      --aa-tag-hybrid-bg:    rgba(236,72,153,.18);
+      --aa-tag-hybrid-fg:    #831843;
+      --aa-tag-past-bg:      rgba(107,114,128,.22);
+      --aa-tag-past-fg:      #1f2937;
+
+      /* ----------------------------------------------------------
+         Override Pico's tokens so its own elements (inputs, links,
+         dialogs, secondary buttons, etc.) follow our palette.
+         Setting these at :root cascades to everything except where
+         Pico re-scopes them (e.g. --pico-color inside <button>),
+         which we handle separately below.
+         ---------------------------------------------------------- */
+      --pico-background-color:               var(--aa-bg);
+      --pico-color:                          var(--aa-fg);
+      --pico-h1-color:                       var(--aa-fg-strong);
+      --pico-h2-color:                       var(--aa-fg-strong);
+      --pico-h3-color:                       var(--aa-fg-strong);
+      --pico-h4-color:                       var(--aa-fg-strong);
+      --pico-h5-color:                       var(--aa-fg-strong);
+      --pico-h6-color:                       var(--aa-fg-strong);
+      --pico-muted-color:                    var(--aa-fg-muted);
+      --pico-muted-border-color:             var(--aa-border);
+      --pico-primary:                        var(--aa-brand);
+      --pico-primary-background:             var(--aa-brand);
+      --pico-primary-border:                 var(--aa-brand);
+      --pico-primary-inverse:                var(--aa-brand-fg);
+      --pico-primary-hover:                  var(--aa-brand-hover);
+      --pico-primary-hover-background:       var(--aa-brand-hover);
+      --pico-primary-hover-border:           var(--aa-brand-hover);
+      --pico-primary-focus:                  var(--aa-focus);
+      --pico-primary-underline:              var(--aa-brand);
+      --pico-secondary:                      var(--aa-fg-muted);
+      --pico-secondary-background:           var(--aa-surface-2);
+      --pico-secondary-border:               var(--aa-border-strong);
+      --pico-secondary-inverse:              var(--aa-fg-strong);
+      --pico-secondary-hover:                var(--aa-fg);
+      --pico-secondary-hover-background:     var(--aa-surface-3);
+      --pico-secondary-hover-border:         var(--aa-fg-muted);
+      --pico-contrast:                       var(--aa-fg-strong);
+      --pico-contrast-background:            var(--aa-fg-strong);
+      --pico-contrast-border:                var(--aa-fg-strong);
+      --pico-contrast-inverse:               var(--aa-surface);
+      --pico-contrast-hover:                 var(--aa-fg);
+      --pico-contrast-hover-background:      var(--aa-fg);
+      --pico-contrast-hover-border:          var(--aa-fg);
+      --pico-card-background-color:          var(--aa-surface);
+      --pico-card-border-color:              var(--aa-border);
+      --pico-card-sectioning-background-color: var(--aa-surface-2);
+      --pico-card-box-shadow:                var(--shadow-card);
+      --pico-form-element-background-color:  var(--aa-surface);
+      --pico-form-element-color:             var(--aa-fg);
+      --pico-form-element-placeholder-color: var(--aa-fg-subtle);
+      --pico-form-element-border-color:      var(--aa-border);
+      --pico-form-element-active-background-color: var(--aa-surface);
+      --pico-form-element-active-border-color: var(--aa-brand);
+      --pico-form-element-focus-color:       var(--aa-focus);
+      --pico-mark-background-color:          var(--aa-mark-bg);
+      --pico-mark-color:                     var(--aa-mark-fg);
+      --pico-del-color:                      #b91c1c;
+      --pico-modal-overlay-background-color: rgba(15,23,42,.55);
+      --pico-text-selection-color:           rgba(13,148,136,.30);
     }
 
-    /* Dark theme overrides — applied when the user has explicitly chosen
-       dark, OR when the OS prefers dark AND the user hasn't forced light. */
+    /* DARK overrides — explicit user choice. */
     :root[data-theme="dark"] {
-      --aa-fg:               #e3e6ec;
-      --aa-fg-strong:        #f3f5f9;
-      --aa-fg-muted:         #aab0bd;
-      --aa-surface:          #11161d;
-      --aa-surface-2:        #1a2029;
+      --aa-bg:               #0b1118;
+      --aa-surface:          #131a23;
+      --aa-surface-2:        #1c2530;
+      --aa-surface-3:        #25303d;
       --aa-border:           #2c3340;
+      --aa-border-strong:    #4a5365;
+
+      --aa-fg:               #e8ecf3;
+      --aa-fg-strong:        #f5f7fa;
+      --aa-fg-muted:         #a4adba;
+      --aa-fg-subtle:        #818b9a;
+
+      --aa-brand:            #2dd4bf;   /* teal-400 — pops on dark */
+      --aa-brand-hover:      #5eead4;
+      --aa-brand-fg:         #042f2e;   /* dark text on bright teal */
+      --aa-brand-soft-bg:    rgba(45,212,191,.16);
+      --aa-brand-soft-fg:    #5eead4;
+      --aa-link:             #5eead4;
+      --aa-link-hover:       #99f6e4;
+
+      --aa-focus:            rgba(45,212,191,.40);
+      --shadow-card:         0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.25);
+      --shadow-lift:         0 12px 28px rgba(0,0,0,.5), 0 4px 8px rgba(0,0,0,.25);
+
       --aa-mark-bg:          rgba(252,211,77,.35);
-      --aa-mark-fg:          #fde68a;
+      --aa-mark-fg:           #fde68a;
+      --aa-rel-today-bg:     rgba(239,68,68,.22);
       --aa-rel-today-fg:     #fca5a5;
+      --aa-rel-tomorrow-bg:  rgba(234,179,8,.22);
       --aa-rel-tomorrow-fg:  #fde68a;
+      --aa-rel-soon-bg:      rgba(59,130,246,.22);
       --aa-rel-soon-fg:      #93c5fd;
+
+      --aa-tag-aageek-bg:    rgba(45,212,191,.18);
       --aa-tag-aageek-fg:    #5eead4;
+      --aa-tag-neta65-bg:    rgba(167,139,250,.18);
       --aa-tag-neta65-fg:    #c4b5fd;
+      --aa-tag-aawsny-bg:    rgba(251,191,36,.20);
       --aa-tag-aawsny-fg:    #fcd34d;
+      --aa-tag-cat-bg:       rgba(129,140,248,.18);
       --aa-tag-cat-fg:       #a5b4fc;
+      --aa-tag-virtual-bg:   rgba(96,165,250,.20);
       --aa-tag-virtual-fg:   #93c5fd;
+      --aa-tag-physical-bg:  rgba(52,211,153,.20);
       --aa-tag-physical-fg:  #6ee7b7;
+      --aa-tag-hybrid-bg:    rgba(244,114,182,.20);
       --aa-tag-hybrid-fg:    #f9a8d4;
-      --aa-tag-past-fg:      #d1d5db;
+      --aa-tag-past-bg:      rgba(156,163,175,.22);
+      --aa-tag-past-fg:      #e5e7eb;
+
+      --pico-modal-overlay-background-color: rgba(0,0,0,.65);
+      --pico-text-selection-color:           rgba(45,212,191,.30);
     }
+
+    /* DARK overrides — system preference (only when user hasn't forced light). */
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --aa-fg:               #e3e6ec;
-        --aa-fg-strong:        #f3f5f9;
-        --aa-fg-muted:         #aab0bd;
-        --aa-surface:          #11161d;
-        --aa-surface-2:        #1a2029;
+        --aa-bg:               #0b1118;
+        --aa-surface:          #131a23;
+        --aa-surface-2:        #1c2530;
+        --aa-surface-3:        #25303d;
         --aa-border:           #2c3340;
+        --aa-border-strong:    #4a5365;
+
+        --aa-fg:               #e8ecf3;
+        --aa-fg-strong:        #f5f7fa;
+        --aa-fg-muted:         #a4adba;
+        --aa-fg-subtle:        #818b9a;
+
+        --aa-brand:            #2dd4bf;
+        --aa-brand-hover:      #5eead4;
+        --aa-brand-fg:         #042f2e;
+        --aa-brand-soft-bg:    rgba(45,212,191,.16);
+        --aa-brand-soft-fg:    #5eead4;
+        --aa-link:             #5eead4;
+        --aa-link-hover:       #99f6e4;
+
+        --aa-focus:            rgba(45,212,191,.40);
+        --shadow-card:         0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.25);
+        --shadow-lift:         0 12px 28px rgba(0,0,0,.5), 0 4px 8px rgba(0,0,0,.25);
+
         --aa-mark-bg:          rgba(252,211,77,.35);
         --aa-mark-fg:          #fde68a;
+        --aa-rel-today-bg:     rgba(239,68,68,.22);
         --aa-rel-today-fg:     #fca5a5;
+        --aa-rel-tomorrow-bg:  rgba(234,179,8,.22);
         --aa-rel-tomorrow-fg:  #fde68a;
+        --aa-rel-soon-bg:      rgba(59,130,246,.22);
         --aa-rel-soon-fg:      #93c5fd;
+
+        --aa-tag-aageek-bg:    rgba(45,212,191,.18);
         --aa-tag-aageek-fg:    #5eead4;
+        --aa-tag-neta65-bg:    rgba(167,139,250,.18);
         --aa-tag-neta65-fg:    #c4b5fd;
+        --aa-tag-aawsny-bg:    rgba(251,191,36,.20);
         --aa-tag-aawsny-fg:    #fcd34d;
+        --aa-tag-cat-bg:       rgba(129,140,248,.18);
         --aa-tag-cat-fg:       #a5b4fc;
+        --aa-tag-virtual-bg:   rgba(96,165,250,.20);
         --aa-tag-virtual-fg:   #93c5fd;
+        --aa-tag-physical-bg:  rgba(52,211,153,.20);
         --aa-tag-physical-fg:  #6ee7b7;
+        --aa-tag-hybrid-bg:    rgba(244,114,182,.20);
         --aa-tag-hybrid-fg:    #f9a8d4;
-        --aa-tag-past-fg:      #d1d5db;
+        --aa-tag-past-bg:      rgba(156,163,175,.22);
+        --aa-tag-past-fg:      #e5e7eb;
+
+        --pico-modal-overlay-background-color: rgba(0,0,0,.65);
+        --pico-text-selection-color:           rgba(45,212,191,.30);
       }
     }
+
+    /* ============================================================
+       Defeat Pico's button-context override of --pico-color.
+       Pico v2 sets `--pico-color: var(--pico-primary-inverse)` and
+       `--pico-background-color: var(--pico-primary-background)`
+       inside EVERY <button>, so any outline-style button paints as
+       white-on-white in light mode. We re-scope those variables
+       inside our chrome buttons so Pico's own `color: var(--pico-color)`
+       rule reads our text color, *and* we set `color` explicitly as
+       a belt-and-suspenders override.
+       ============================================================ */
+    .chip,
+    .tab,
+    .page-btn,
+    .help-btn,
+    .dlg-x,
+    .cal-mode button,
+    button.chip,
+    button.tab,
+    button.page-btn,
+    button.help-btn,
+    button.dlg-x {
+      --pico-color:            var(--aa-fg);
+      --pico-background-color: transparent;
+      --pico-border-color:     var(--aa-border);
+      color:                   var(--aa-fg);
+      background:              transparent;  /* shorthand → also resets background-image */
+    }
+    .chip.active,
+    .tab.active,
+    .page-btn.current,
+    .cal-mode button.active {
+      --pico-color:            var(--aa-brand-fg);
+      --pico-background-color: var(--aa-brand);
+      --pico-border-color:     var(--aa-brand);
+      color:                   var(--aa-brand-fg);
+      background-color:        var(--aa-brand);
+      border-color:            var(--aa-brand);
+    }
+
+    /* Make sure the page itself uses our background even before Pico
+       has a chance to read its overridden tokens on body. */
+    html, body { background-color: var(--aa-bg); color: var(--aa-fg); }
 
     * { box-sizing: border-box; }
     body { margin: 0; }
@@ -719,7 +912,7 @@
     }
 
     /* ------------- Dialog ------------- */
-    .event-dialog::backdrop { background: rgba(0,0,0,.55); }
+    .event-dialog::backdrop { background: var(--pico-modal-overlay-background-color); }
     .event-dialog {
       border: none;
       padding: 0;
@@ -848,10 +1041,10 @@
     /* Dialog close (X) button.
        Anchored to the article (not the header) so it always sits cleanly in
        the dialog's top-right corner, regardless of Pico's header margins.
-       Pico's <button> reset uses display:block; width:100% — we lock the
-       size with explicit width/min/max + appearance:none to fully neutralise
-       any default styling. */
-    .close {
+       Renamed from .close to .dlg-x so Pico's own .close styles (which add
+       a background-image X icon, doubling up on our &times; text) don't
+       apply. We lock size with explicit width/min/max + appearance:none. */
+    .dlg-x {
       position: absolute;
       top: .6rem;
       right: .6rem;
@@ -878,13 +1071,13 @@
       appearance: none;
       transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
     }
-    .close:hover {
+    .dlg-x:hover {
       background: var(--aa-fg);
       color: var(--aa-surface);
       border-color: var(--aa-fg);
     }
-    .close:active { transform: scale(.94); }
-    .close:focus-visible {
+    .dlg-x:active { transform: scale(.94); }
+    .dlg-x:focus-visible {
       outline: 2px solid var(--pico-primary-background);
       outline-offset: 2px;
     }
@@ -1124,7 +1317,7 @@
   <dialog id="settings-dialog" class="event-dialog" aria-labelledby="settings-title">
     <article>
       <header>
-        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="settings-title">Settings</h3>
       </header>
       <div class="settings-body">
@@ -1169,7 +1362,7 @@
   <dialog id="help-dialog" class="event-dialog" aria-labelledby="help-title">
     <article>
       <header>
-        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="help-title">Keyboard shortcuts</h3>
       </header>
       <table class="help-table">
@@ -1198,7 +1391,7 @@
   <dialog id="event-dialog" class="event-dialog" aria-labelledby="dlg-title">
     <article>
       <header>
-        <button class="close" aria-label="Close" data-close type="button">&times;</button>
+        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="dlg-title"></h3>
         <div id="dlg-tags" class="tags"></div>
       </header>
@@ -1298,8 +1491,10 @@
         } else {
           root.removeAttribute('data-theme');
         }
-        // Keep the browser chrome / address bar tinted to match.
-        const tint = effectiveTheme() === 'dark' ? '#1f2937' : '#14b8a6';
+        // Keep the browser chrome / address bar tinted to match the active
+        // theme's surface (matches the sticky header), not the brand color —
+        // so the address bar feels continuous with the page.
+        const tint = effectiveTheme() === 'dark' ? '#131a23' : '#ffffff';
         document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
           m.setAttribute('content', tint);
           m.removeAttribute('media');
