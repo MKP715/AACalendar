@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#131a23" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#14b8a6" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)" />
   <meta name="referrer" content="no-referrer-when-downgrade" />
   <title>AAGeek Events</title>
   <meta name="description" content="AAGeek / NETA65 / AAWSNY events — filter by class, category, and venue." />
@@ -15,9 +15,11 @@
   <meta property="og:description" content="Study · Seminar · Speaker · Series · Story · Service · Session — filter and view AAGeek / NETA65 / AAWSNY events." />
   <meta name="twitter:card"       content="summary" />
 
-  <!-- Favicon: inline SVG data URI (no extra file required) -->
+  <!-- Favicon: inline SVG data URI (no extra file required).
+       Mini calendar mark — readable at 16×16: teal square, dark header strip,
+       binder hooks, and a bold white "A" monogram for AAGeek. -->
   <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314b8a6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='700' fill='white' dominant-baseline='middle'>A</text></svg>" />
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314b8a6'/><rect x='4' y='9' width='24' height='5' fill='%230f766e'/><rect x='9' y='5' width='2.4' height='6.5' rx='1.2' fill='%230f766e'/><rect x='20.6' y='5' width='2.4' height='6.5' rx='1.2' fill='%230f766e'/><text x='16' y='25.5' text-anchor='middle' font-family='system-ui,sans-serif' font-size='15' font-weight='800' fill='white'>A</text></svg>" />
 
   <!-- Pico.css v2 (MIT) — mobile-first, semantic, classless+ -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
@@ -29,296 +31,16 @@
        We add: filter chips, event cards, calendar grid, dialog polish.
        ===================================================================== */
 
-    /* ============================================================
-       Brand-new theme system
-       ------------------------------------------------------------
-       Defines two complete palettes (light & dark) via --aa-* tokens
-       and *overrides Pico's own tokens* so the whole UI — including
-       components Pico paints (inputs, dialogs, links) — follows.
-
-       Dark mode applies when EITHER:
-         (a) user explicitly picked dark in Settings (data-theme="dark"), OR
-         (b) OS prefers dark AND user has not forced light.
-       ============================================================ */
     :root {
-      /* -- Brand accents (class colors, used for dots & bars) -- */
       --color-aageek:    #14b8a6;
       --color-neta65:    #8b5cf6;
       --color-aawsny:    #f59e0b;
       --color-virtual:   #3b82f6;
       --color-physical:  #10b981;
       --color-hybrid:    #ec4899;
-
-      /* -- Surfaces & borders (LIGHT) -- */
-      --aa-bg:               #f6f8fb;   /* page background */
-      --aa-surface:          #ffffff;   /* cards, header, dialogs */
-      --aa-surface-2:        #eef1f6;   /* hover surfaces */
-      --aa-surface-3:        #e2e7ef;   /* deeper hover / grid lines */
-      --aa-border:           #d6dae3;
-      --aa-border-strong:    #9aa3b5;
-
-      /* -- Text (LIGHT) — all WCAG-AA on white -- */
-      --aa-fg:               #1f2937;   /* primary text — 12.6:1 on #fff */
-      --aa-fg-strong:        #0f172a;   /* headings */
-      --aa-fg-muted:         #4b5563;   /* secondary — 7.6:1 on #fff */
-      --aa-fg-subtle:        #6b7280;   /* tertiary — 4.8:1 on #fff */
-
-      /* -- Brand color (teal — matches AAGeek dot) -- */
-      --aa-brand:            #0d9488;   /* teal-600 */
-      --aa-brand-hover:      #0f766e;   /* teal-700 */
-      --aa-brand-fg:         #ffffff;   /* text on brand bg */
-      --aa-brand-soft-bg:    #ccfbf1;
-      --aa-brand-soft-fg:    #115e59;
-      --aa-link:             #0d9488;
-      --aa-link-hover:       #115e59;
-
-      /* -- Focus, shadow -- */
-      --aa-focus:            rgba(13, 148, 136, .35);
-      --shadow-card:         0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.08);
-      --shadow-lift:         0 8px 24px rgba(15,23,42,.10), 0 2px 6px rgba(15,23,42,.06);
-
-      /* -- Status colors (light) -- */
-      --aa-mark-bg:          rgba(252,211,77,.55);
-      --aa-mark-fg:          #1f2937;
-      --aa-rel-today-bg:     rgba(239,68,68,.18);
-      --aa-rel-today-fg:     #991b1b;
-      --aa-rel-tomorrow-bg:  rgba(234,179,8,.20);
-      --aa-rel-tomorrow-fg:  #854d0e;
-      --aa-rel-soon-bg:      rgba(59,130,246,.16);
-      --aa-rel-soon-fg:      #1e40af;
-
-      /* -- Tag chips (filter result counts) -- */
-      --aa-tag-aageek-bg:    rgba(20,184,166,.18);
-      --aa-tag-aageek-fg:    #115e59;
-      --aa-tag-neta65-bg:    rgba(139,92,246,.18);
-      --aa-tag-neta65-fg:    #5b21b6;
-      --aa-tag-aawsny-bg:    rgba(245,158,11,.22);
-      --aa-tag-aawsny-fg:    #78350f;
-      --aa-tag-cat-bg:       rgba(99,102,241,.18);
-      --aa-tag-cat-fg:       #312e81;
-      --aa-tag-virtual-bg:   rgba(59,130,246,.18);
-      --aa-tag-virtual-fg:   #1e40af;
-      --aa-tag-physical-bg:  rgba(16,185,129,.20);
-      --aa-tag-physical-fg:  #065f46;
-      --aa-tag-hybrid-bg:    rgba(236,72,153,.18);
-      --aa-tag-hybrid-fg:    #831843;
-      --aa-tag-past-bg:      rgba(107,114,128,.22);
-      --aa-tag-past-fg:      #1f2937;
-
-      /* ----------------------------------------------------------
-         Override Pico's tokens so its own elements (inputs, links,
-         dialogs, secondary buttons, etc.) follow our palette.
-         Setting these at :root cascades to everything except where
-         Pico re-scopes them (e.g. --pico-color inside <button>),
-         which we handle separately below.
-         ---------------------------------------------------------- */
-      --pico-background-color:               var(--aa-bg);
-      --pico-color:                          var(--aa-fg);
-      --pico-h1-color:                       var(--aa-fg-strong);
-      --pico-h2-color:                       var(--aa-fg-strong);
-      --pico-h3-color:                       var(--aa-fg-strong);
-      --pico-h4-color:                       var(--aa-fg-strong);
-      --pico-h5-color:                       var(--aa-fg-strong);
-      --pico-h6-color:                       var(--aa-fg-strong);
-      --pico-muted-color:                    var(--aa-fg-muted);
-      --pico-muted-border-color:             var(--aa-border);
-      --pico-primary:                        var(--aa-brand);
-      --pico-primary-background:             var(--aa-brand);
-      --pico-primary-border:                 var(--aa-brand);
-      --pico-primary-inverse:                var(--aa-brand-fg);
-      --pico-primary-hover:                  var(--aa-brand-hover);
-      --pico-primary-hover-background:       var(--aa-brand-hover);
-      --pico-primary-hover-border:           var(--aa-brand-hover);
-      --pico-primary-focus:                  var(--aa-focus);
-      --pico-primary-underline:              var(--aa-brand);
-      --pico-secondary:                      var(--aa-fg-muted);
-      --pico-secondary-background:           var(--aa-surface-2);
-      --pico-secondary-border:               var(--aa-border-strong);
-      --pico-secondary-inverse:              var(--aa-fg-strong);
-      --pico-secondary-hover:                var(--aa-fg);
-      --pico-secondary-hover-background:     var(--aa-surface-3);
-      --pico-secondary-hover-border:         var(--aa-fg-muted);
-      --pico-contrast:                       var(--aa-fg-strong);
-      --pico-contrast-background:            var(--aa-fg-strong);
-      --pico-contrast-border:                var(--aa-fg-strong);
-      --pico-contrast-inverse:               var(--aa-surface);
-      --pico-contrast-hover:                 var(--aa-fg);
-      --pico-contrast-hover-background:      var(--aa-fg);
-      --pico-contrast-hover-border:          var(--aa-fg);
-      --pico-card-background-color:          var(--aa-surface);
-      --pico-card-border-color:              var(--aa-border);
-      --pico-card-sectioning-background-color: var(--aa-surface-2);
-      --pico-card-box-shadow:                var(--shadow-card);
-      --pico-form-element-background-color:  var(--aa-surface);
-      --pico-form-element-color:             var(--aa-fg);
-      --pico-form-element-placeholder-color: var(--aa-fg-subtle);
-      --pico-form-element-border-color:      var(--aa-border);
-      --pico-form-element-active-background-color: var(--aa-surface);
-      --pico-form-element-active-border-color: var(--aa-brand);
-      --pico-form-element-focus-color:       var(--aa-focus);
-      --pico-mark-background-color:          var(--aa-mark-bg);
-      --pico-mark-color:                     var(--aa-mark-fg);
-      --pico-del-color:                      #b91c1c;
-      --pico-modal-overlay-background-color: rgba(15,23,42,.55);
-      --pico-text-selection-color:           rgba(13,148,136,.30);
+      --shadow-card:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lift:     0 6px 18px rgba(0,0,0,.10);
     }
-
-    /* DARK overrides — explicit user choice. */
-    :root[data-theme="dark"] {
-      --aa-bg:               #0b1118;
-      --aa-surface:          #131a23;
-      --aa-surface-2:        #1c2530;
-      --aa-surface-3:        #25303d;
-      --aa-border:           #2c3340;
-      --aa-border-strong:    #4a5365;
-
-      --aa-fg:               #e8ecf3;
-      --aa-fg-strong:        #f5f7fa;
-      --aa-fg-muted:         #a4adba;
-      --aa-fg-subtle:        #818b9a;
-
-      --aa-brand:            #2dd4bf;   /* teal-400 — pops on dark */
-      --aa-brand-hover:      #5eead4;
-      --aa-brand-fg:         #042f2e;   /* dark text on bright teal */
-      --aa-brand-soft-bg:    rgba(45,212,191,.16);
-      --aa-brand-soft-fg:    #5eead4;
-      --aa-link:             #5eead4;
-      --aa-link-hover:       #99f6e4;
-
-      --aa-focus:            rgba(45,212,191,.40);
-      --shadow-card:         0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.25);
-      --shadow-lift:         0 12px 28px rgba(0,0,0,.5), 0 4px 8px rgba(0,0,0,.25);
-
-      --aa-mark-bg:          rgba(252,211,77,.35);
-      --aa-mark-fg:           #fde68a;
-      --aa-rel-today-bg:     rgba(239,68,68,.22);
-      --aa-rel-today-fg:     #fca5a5;
-      --aa-rel-tomorrow-bg:  rgba(234,179,8,.22);
-      --aa-rel-tomorrow-fg:  #fde68a;
-      --aa-rel-soon-bg:      rgba(59,130,246,.22);
-      --aa-rel-soon-fg:      #93c5fd;
-
-      --aa-tag-aageek-bg:    rgba(45,212,191,.18);
-      --aa-tag-aageek-fg:    #5eead4;
-      --aa-tag-neta65-bg:    rgba(167,139,250,.18);
-      --aa-tag-neta65-fg:    #c4b5fd;
-      --aa-tag-aawsny-bg:    rgba(251,191,36,.20);
-      --aa-tag-aawsny-fg:    #fcd34d;
-      --aa-tag-cat-bg:       rgba(129,140,248,.18);
-      --aa-tag-cat-fg:       #a5b4fc;
-      --aa-tag-virtual-bg:   rgba(96,165,250,.20);
-      --aa-tag-virtual-fg:   #93c5fd;
-      --aa-tag-physical-bg:  rgba(52,211,153,.20);
-      --aa-tag-physical-fg:  #6ee7b7;
-      --aa-tag-hybrid-bg:    rgba(244,114,182,.20);
-      --aa-tag-hybrid-fg:    #f9a8d4;
-      --aa-tag-past-bg:      rgba(156,163,175,.22);
-      --aa-tag-past-fg:      #e5e7eb;
-
-      --pico-modal-overlay-background-color: rgba(0,0,0,.65);
-      --pico-text-selection-color:           rgba(45,212,191,.30);
-    }
-
-    /* DARK overrides — system preference (only when user hasn't forced light). */
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --aa-bg:               #0b1118;
-        --aa-surface:          #131a23;
-        --aa-surface-2:        #1c2530;
-        --aa-surface-3:        #25303d;
-        --aa-border:           #2c3340;
-        --aa-border-strong:    #4a5365;
-
-        --aa-fg:               #e8ecf3;
-        --aa-fg-strong:        #f5f7fa;
-        --aa-fg-muted:         #a4adba;
-        --aa-fg-subtle:        #818b9a;
-
-        --aa-brand:            #2dd4bf;
-        --aa-brand-hover:      #5eead4;
-        --aa-brand-fg:         #042f2e;
-        --aa-brand-soft-bg:    rgba(45,212,191,.16);
-        --aa-brand-soft-fg:    #5eead4;
-        --aa-link:             #5eead4;
-        --aa-link-hover:       #99f6e4;
-
-        --aa-focus:            rgba(45,212,191,.40);
-        --shadow-card:         0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.25);
-        --shadow-lift:         0 12px 28px rgba(0,0,0,.5), 0 4px 8px rgba(0,0,0,.25);
-
-        --aa-mark-bg:          rgba(252,211,77,.35);
-        --aa-mark-fg:          #fde68a;
-        --aa-rel-today-bg:     rgba(239,68,68,.22);
-        --aa-rel-today-fg:     #fca5a5;
-        --aa-rel-tomorrow-bg:  rgba(234,179,8,.22);
-        --aa-rel-tomorrow-fg:  #fde68a;
-        --aa-rel-soon-bg:      rgba(59,130,246,.22);
-        --aa-rel-soon-fg:      #93c5fd;
-
-        --aa-tag-aageek-bg:    rgba(45,212,191,.18);
-        --aa-tag-aageek-fg:    #5eead4;
-        --aa-tag-neta65-bg:    rgba(167,139,250,.18);
-        --aa-tag-neta65-fg:    #c4b5fd;
-        --aa-tag-aawsny-bg:    rgba(251,191,36,.20);
-        --aa-tag-aawsny-fg:    #fcd34d;
-        --aa-tag-cat-bg:       rgba(129,140,248,.18);
-        --aa-tag-cat-fg:       #a5b4fc;
-        --aa-tag-virtual-bg:   rgba(96,165,250,.20);
-        --aa-tag-virtual-fg:   #93c5fd;
-        --aa-tag-physical-bg:  rgba(52,211,153,.20);
-        --aa-tag-physical-fg:  #6ee7b7;
-        --aa-tag-hybrid-bg:    rgba(244,114,182,.20);
-        --aa-tag-hybrid-fg:    #f9a8d4;
-        --aa-tag-past-bg:      rgba(156,163,175,.22);
-        --aa-tag-past-fg:      #e5e7eb;
-
-        --pico-modal-overlay-background-color: rgba(0,0,0,.65);
-        --pico-text-selection-color:           rgba(45,212,191,.30);
-      }
-    }
-
-    /* ============================================================
-       Defeat Pico's button-context override of --pico-color.
-       Pico v2 sets `--pico-color: var(--pico-primary-inverse)` and
-       `--pico-background-color: var(--pico-primary-background)`
-       inside EVERY <button>, so any outline-style button paints as
-       white-on-white in light mode. We re-scope those variables
-       inside our chrome buttons so Pico's own `color: var(--pico-color)`
-       rule reads our text color, *and* we set `color` explicitly as
-       a belt-and-suspenders override.
-       ============================================================ */
-    .chip,
-    .tab,
-    .page-btn,
-    .help-btn,
-    .dlg-x,
-    .cal-mode button,
-    button.chip,
-    button.tab,
-    button.page-btn,
-    button.help-btn,
-    button.dlg-x {
-      --pico-color:            var(--aa-fg);
-      --pico-background-color: transparent;
-      --pico-border-color:     var(--aa-border);
-      color:                   var(--aa-fg);
-      background:              transparent;  /* shorthand → also resets background-image */
-    }
-    .chip.active,
-    .tab.active,
-    .page-btn.current,
-    .cal-mode button.active {
-      --pico-color:            var(--aa-brand-fg);
-      --pico-background-color: var(--aa-brand);
-      --pico-border-color:     var(--aa-brand);
-      color:                   var(--aa-brand-fg);
-      background-color:        var(--aa-brand);
-      border-color:            var(--aa-brand);
-    }
-
-    /* Make sure the page itself uses our background even before Pico
-       has a chance to read its overridden tokens on body. */
-    html, body { background-color: var(--aa-bg); color: var(--aa-fg); }
 
     * { box-sizing: border-box; }
     body { margin: 0; }
@@ -350,6 +72,23 @@
       margin: .15rem 0 .6rem 0;
       font-size: .78rem;
     }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      min-width: 0;
+    }
+    .app-logo {
+      width: 2.1rem;
+      height: 2.1rem;
+      flex-shrink: 0;
+      display: block;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,.08));
+    }
+    @media (min-width: 640px) {
+      .app-logo { width: 2.4rem; height: 2.4rem; }
+      .app-header .brand h1 { font-size: 1.4rem; }
+    }
 
     .view-toggle {
       display: flex;
@@ -361,7 +100,7 @@
       border-radius: .4rem;
       border: 1px solid var(--pico-muted-border-color);
       background: transparent;
-      color: var(--aa-fg);
+      color: var(--pico-color);
       font-size: .85rem;
       font-weight: 500;
       cursor: pointer;
@@ -409,7 +148,7 @@
       font-size: .8rem;
       border: 1px solid var(--pico-muted-border-color);
       background: transparent;
-      color: var(--aa-fg);
+      color: var(--pico-color);
       cursor: pointer;
       transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
       margin: 0;
@@ -493,7 +232,7 @@
       border-radius: .4rem;
       border: 1px solid var(--pico-muted-border-color);
       background: transparent;
-      color: var(--aa-fg);
+      color: var(--pico-color);
       font-size: .85rem;
       font-weight: 500;
       cursor: pointer;
@@ -538,22 +277,32 @@
       text-align: center;
       background: var(--pico-secondary-background);
       border-radius: .45rem;
-      padding: .4rem .25rem;
+      padding: .35rem .25rem .4rem;
       line-height: 1.15;
     }
     .date-block .month {
-      font-size: .7rem;
+      font-size: .78rem;
       text-transform: uppercase;
-      letter-spacing: .04em;
-      color: var(--pico-muted-color);
+      letter-spacing: .06em;
+      color: var(--pico-color);          /* full contrast, not muted */
+      font-weight: 700;
+    }
+    .date-block .day  {
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--pico-color);
+    }
+    .date-block .wday {
+      font-size: .72rem;
+      color: var(--pico-color);
+      opacity: .85;                      /* slightly lighter than month, still legible */
+      text-transform: uppercase;
+      letter-spacing: .06em;
       font-weight: 600;
     }
-    .date-block .day  { font-size: 1.45rem; font-weight: 700; }
-    .date-block .wday {
-      font-size: .65rem;
-      color: var(--pico-muted-color);
-      text-transform: uppercase;
-      letter-spacing: .04em;
+    @media (prefers-color-scheme: dark) {
+      .date-block .wday { opacity: .9; }
     }
 
     .event-main h3 {
@@ -576,9 +325,9 @@
       font-weight: 600;
       white-space: nowrap;
     }
-    .rel-today    { background: var(--aa-rel-today-bg);    color: var(--aa-rel-today-fg); }
-    .rel-tomorrow { background: var(--aa-rel-tomorrow-bg); color: var(--aa-rel-tomorrow-fg); }
-    .rel-soon     { background: var(--aa-rel-soon-bg);     color: var(--aa-rel-soon-fg); }
+    .rel-today    { background: rgba(239,68,68,.15);  color: #b91c1c; }
+    .rel-tomorrow { background: rgba(234,179,8,.15);  color: #a16207; }
+    .rel-soon     { background: rgba(59,130,246,.12); color: #1d4ed8; }
     .rec-badge {
       font-size: .75rem;
       line-height: 1;
@@ -586,10 +335,16 @@
       opacity: .8;
     }
     mark {
-      background: var(--aa-mark-bg);
-      color: var(--aa-mark-fg);
+      background: rgba(252,211,77,.55);
+      color: inherit;
       padding: 0 .1em;
       border-radius: .15em;
+    }
+    @media (prefers-color-scheme: dark) {
+      mark          { background: rgba(252,211,77,.35); color: #fde68a; }
+      .rel-today    { color: #fca5a5; }
+      .rel-tomorrow { color: #fde68a; }
+      .rel-soon     { color: #93c5fd; }
     }
 
     .event-meta {
@@ -653,14 +408,25 @@
       letter-spacing: .02em;
       line-height: 1.4;
     }
-    .tag.class-AAGeek  { --tag-bg: var(--aa-tag-aageek-bg);   --tag-fg: var(--aa-tag-aageek-fg); }
-    .tag.class-NETA65  { --tag-bg: var(--aa-tag-neta65-bg);   --tag-fg: var(--aa-tag-neta65-fg); }
-    .tag.class-AAWSNY  { --tag-bg: var(--aa-tag-aawsny-bg);   --tag-fg: var(--aa-tag-aawsny-fg); }
-    .tag.cat           { --tag-bg: var(--aa-tag-cat-bg);      --tag-fg: var(--aa-tag-cat-fg); }
-    .tag.venue-Virtual { --tag-bg: var(--aa-tag-virtual-bg);  --tag-fg: var(--aa-tag-virtual-fg); }
-    .tag.venue-Physical{ --tag-bg: var(--aa-tag-physical-bg); --tag-fg: var(--aa-tag-physical-fg); }
-    .tag.venue-Hybrid  { --tag-bg: var(--aa-tag-hybrid-bg);   --tag-fg: var(--aa-tag-hybrid-fg); }
-    .tag.past-tag      { --tag-bg: var(--aa-tag-past-bg);     --tag-fg: var(--aa-tag-past-fg); }
+    .tag.class-AAGeek  { --tag-bg: rgba(20,184,166,.15);  --tag-fg: #0f766e; }
+    .tag.class-NETA65  { --tag-bg: rgba(139,92,246,.15);  --tag-fg: #6d28d9; }
+    .tag.class-AAWSNY  { --tag-bg: rgba(245,158,11,.15);  --tag-fg: #b45309; }
+    .tag.cat           { --tag-bg: rgba(99,102,241,.12);  --tag-fg: #4338ca; }
+    .tag.venue-Virtual { --tag-bg: rgba(59,130,246,.15);  --tag-fg: #1d4ed8; }
+    .tag.venue-Physical{ --tag-bg: rgba(16,185,129,.15);  --tag-fg: #047857; }
+    .tag.venue-Hybrid  { --tag-bg: rgba(236,72,153,.15);  --tag-fg: #be185d; }
+    .tag.past-tag      { --tag-bg: rgba(107,114,128,.18); --tag-fg: #4b5563; }
+
+    @media (prefers-color-scheme: dark) {
+      .tag.class-AAGeek  { --tag-fg: #5eead4; }
+      .tag.class-NETA65  { --tag-fg: #c4b5fd; }
+      .tag.class-AAWSNY  { --tag-fg: #fcd34d; }
+      .tag.cat           { --tag-fg: #a5b4fc; }
+      .tag.venue-Virtual { --tag-fg: #93c5fd; }
+      .tag.venue-Physical{ --tag-fg: #6ee7b7; }
+      .tag.venue-Hybrid  { --tag-fg: #f9a8d4; }
+      .tag.past-tag      { --tag-fg: #d1d5db; }
+    }
 
     /* ------------- Calendar grid ------------- */
     .cal-header {
@@ -872,11 +638,9 @@
       border-radius: .4rem;
       border: 1px solid var(--pico-muted-border-color);
       background: transparent;
-      color: var(--aa-fg);
+      color: var(--pico-muted-color);
       cursor: pointer;
-      transition: background .15s ease, color .15s ease, border-color .15s ease;
     }
-    .cal-mode button:hover { background: var(--pico-secondary-background); color: var(--aa-fg-strong); }
     .cal-mode button.active {
       background: var(--pico-primary-background);
       color: var(--pico-primary-inverse);
@@ -912,7 +676,7 @@
     }
 
     /* ------------- Dialog ------------- */
-    .event-dialog::backdrop { background: var(--pico-modal-overlay-background-color); }
+    .event-dialog::backdrop { background: rgba(0,0,0,.55); }
     .event-dialog {
       border: none;
       padding: 0;
@@ -932,18 +696,28 @@
       font-size: 1.15rem;
       line-height: 1.3;
     }
-    .dlg-meta { font-size: .9rem; margin-bottom: .75rem; }
+    .dlg-meta {
+      font-size: .9rem;
+      margin-bottom: .75rem;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     .dlg-meta div {
       margin-bottom: .3rem;
       display: flex;
       align-items: flex-start;
       gap: .5rem;
       line-height: 1.4;
+      min-width: 0;                /* let flex children shrink */
     }
-    .dlg-meta .meta-icon { flex-shrink: 0; line-height: 1.4; }
+    /* Allow every flex child except the fixed icon to shrink to fit */
+    .dlg-meta div > *      { min-width: 0; max-width: 100%; }
+    .dlg-meta .meta-icon   { flex-shrink: 0; line-height: 1.4; min-width: auto; }
+    .dlg-meta .meta-loc    { flex: 1 1 auto; }
     .dlg-meta a {
       color: var(--pico-primary);
-      word-break: break-all;
+      overflow-wrap: anywhere;     /* break long URLs / addresses gracefully */
+      word-break: break-word;
     }
     .dlg-body {
       font-size: .9rem;
@@ -969,7 +743,7 @@
     .help-btn {
       background: transparent;
       border: 1px solid var(--pico-muted-border-color);
-      color: var(--aa-fg);
+      color: var(--pico-muted-color);
       width: 2rem;
       height: 2rem;
       min-width: 2rem;
@@ -988,7 +762,7 @@
       appearance: none;
       transition: background .15s ease, color .15s ease, border-color .15s ease;
     }
-    .help-btn:hover { background: var(--pico-secondary-background); color: var(--aa-fg-strong); border-color: var(--aa-fg); }
+    .help-btn:hover { background: var(--pico-secondary-background); color: var(--pico-color); border-color: var(--pico-color); }
     .help-btn:focus-visible { outline: 2px solid var(--pico-primary-background); outline-offset: 2px; }
     .brand-row { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
     .brand-actions { display: inline-flex; gap: .4rem; flex-shrink: 0; }
@@ -1023,7 +797,9 @@
     .settings-group legend { font-weight: 600; padding: 0 .35rem; font-size: .85rem; }
     .settings-group label { display: flex; align-items: center; gap: .5rem; margin: .3rem 0; cursor: pointer; }
     .settings-group label.row { justify-content: flex-start; }
-    .settings-group select { margin: 0; padding: .15rem 1.6rem .15rem .5rem; width: auto; }
+    .settings-group select { margin: 0; padding: .15rem 1.6rem .15rem .5rem; width: auto; max-width: 100%; }
+    .settings-group label.row { gap: .6rem; flex-wrap: wrap; }
+    #tz-select { flex: 1 1 12rem; min-width: 0; }
     .settings-group input[type=checkbox], .settings-group input[type=radio] { margin: 0; }
     .notify-hint { margin: .5rem 0 0 0; font-size: .78rem; }
 
@@ -1041,10 +817,10 @@
     /* Dialog close (X) button.
        Anchored to the article (not the header) so it always sits cleanly in
        the dialog's top-right corner, regardless of Pico's header margins.
-       Renamed from .close to .dlg-x so Pico's own .close styles (which add
-       a background-image X icon, doubling up on our &times; text) don't
-       apply. We lock size with explicit width/min/max + appearance:none. */
-    .dlg-x {
+       Pico's <button> reset uses display:block; width:100% — we lock the
+       size with explicit width/min/max + appearance:none to fully neutralise
+       any default styling. */
+    .close {
       position: absolute;
       top: .6rem;
       right: .6rem;
@@ -1065,19 +841,19 @@
       line-height: 1;
       padding: 0;
       margin: 0;
-      color: var(--aa-fg);
+      color: var(--pico-color);
       cursor: pointer;
       -webkit-appearance: none;
       appearance: none;
       transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
     }
-    .dlg-x:hover {
-      background: var(--aa-fg);
-      color: var(--aa-surface);
-      border-color: var(--aa-fg);
+    .close:hover {
+      background: var(--pico-color);
+      color: var(--pico-background-color);
+      border-color: var(--pico-color);
     }
-    .dlg-x:active { transform: scale(.94); }
-    .dlg-x:focus-visible {
+    .close:active { transform: scale(.94); }
+    .close:focus-visible {
       outline: 2px solid var(--pico-primary-background);
       outline-offset: 2px;
     }
@@ -1182,7 +958,27 @@
   <header class="app-header">
     <div class="brand">
       <div class="brand-row">
-        <h1>AAGeek Events</h1>
+        <div class="brand-title">
+          <!-- Logo: stylised calendar tile with binder rings, the three class
+               brand colours (AAGeek teal · NETA65 purple · AAWSNY amber) as
+               event dots, and an "AA" monogram in the calendar body. -->
+          <svg class="app-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"
+               role="img" aria-label="AAGeek Events logo">
+            <title>AAGeek Events</title>
+            <rect width="64" height="64" rx="14" fill="#14b8a6"/>
+            <rect x="11" y="17" width="42" height="37" rx="4" fill="#ffffff"/>
+            <path d="M11 21a4 4 0 0 1 4-4h34a4 4 0 0 1 4 4v6H11z" fill="#0f766e"/>
+            <rect x="20"   y="12" width="3.5" height="11" rx="1.75" fill="#0f766e"/>
+            <rect x="40.5" y="12" width="3.5" height="11" rx="1.75" fill="#0f766e"/>
+            <circle cx="22" cy="36" r="3" fill="#14b8a6"/>
+            <circle cx="32" cy="36" r="3" fill="#8b5cf6"/>
+            <circle cx="42" cy="36" r="3" fill="#f59e0b"/>
+            <text x="32" y="50" text-anchor="middle"
+                  font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif"
+                  font-size="12" font-weight="800" fill="#0f766e">AA</text>
+          </svg>
+          <h1>AAGeek Events</h1>
+        </div>
         <div class="brand-actions">
           <button id="settings-btn" type="button" class="help-btn" aria-label="Settings" title="Settings">⚙</button>
           <button id="help-btn" type="button" class="help-btn" aria-label="Keyboard shortcuts (press ?)" title="Keyboard shortcuts (?)">?</button>
@@ -1317,20 +1113,63 @@
   <dialog id="settings-dialog" class="event-dialog" aria-labelledby="settings-title">
     <article>
       <header>
-        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="settings-title">Settings</h3>
       </header>
       <div class="settings-body">
         <fieldset class="settings-group">
-          <legend>Appearance</legend>
-          <label><input type="radio" name="theme" value="auto" /> Match my device <span class="muted">(follows light / dark system setting)</span></label>
-          <label><input type="radio" name="theme" value="light" /> Light</label>
-          <label><input type="radio" name="theme" value="dark" /> Dark</label>
-        </fieldset>
-        <fieldset class="settings-group">
           <legend>Time zone</legend>
-          <label><input type="radio" name="tz" value="local" /> My local time <span class="muted" id="local-tz-name"></span></label>
-          <label><input type="radio" name="tz" value="default" /> America/Chicago <span class="muted">(calendar's published time zone)</span></label>
+          <label class="row">
+            <span>Display in</span>
+            <select id="tz-select" aria-label="Time zone">
+              <option value="__auto__">Auto — My local time</option>
+              <optgroup label="Americas">
+                <option value="Pacific/Honolulu">Honolulu (HST)</option>
+                <option value="America/Anchorage">Anchorage (AKT)</option>
+                <option value="America/Los_Angeles">Los Angeles (PT)</option>
+                <option value="America/Denver">Denver (MT)</option>
+                <option value="America/Chicago">Chicago (CT) — calendar default</option>
+                <option value="America/New_York">New York (ET)</option>
+                <option value="America/Toronto">Toronto</option>
+                <option value="America/Mexico_City">Mexico City</option>
+                <option value="America/Sao_Paulo">São Paulo</option>
+                <option value="America/Argentina/Buenos_Aires">Buenos Aires</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="Europe/London">London (GMT/BST)</option>
+                <option value="Europe/Paris">Paris (CET/CEST)</option>
+                <option value="Europe/Berlin">Berlin</option>
+                <option value="Europe/Madrid">Madrid</option>
+                <option value="Europe/Rome">Rome</option>
+                <option value="Europe/Athens">Athens</option>
+                <option value="Europe/Moscow">Moscow</option>
+              </optgroup>
+              <optgroup label="Africa / Middle East">
+                <option value="Africa/Cairo">Cairo</option>
+                <option value="Africa/Johannesburg">Johannesburg</option>
+                <option value="Africa/Lagos">Lagos</option>
+                <option value="Asia/Jerusalem">Jerusalem</option>
+                <option value="Asia/Dubai">Dubai (GST)</option>
+                <option value="Asia/Riyadh">Riyadh</option>
+              </optgroup>
+              <optgroup label="Asia / Pacific">
+                <option value="Asia/Karachi">Karachi</option>
+                <option value="Asia/Kolkata">India (IST)</option>
+                <option value="Asia/Dhaka">Dhaka</option>
+                <option value="Asia/Bangkok">Bangkok</option>
+                <option value="Asia/Singapore">Singapore</option>
+                <option value="Asia/Hong_Kong">Hong Kong</option>
+                <option value="Asia/Shanghai">Shanghai</option>
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Seoul">Seoul</option>
+                <option value="Australia/Perth">Perth</option>
+                <option value="Australia/Sydney">Sydney</option>
+                <option value="Pacific/Auckland">Auckland</option>
+              </optgroup>
+              <option value="UTC">UTC</option>
+            </select>
+          </label>
+          <p class="muted notify-hint" id="tz-current"></p>
         </fieldset>
         <fieldset class="settings-group">
           <legend>Reminders</legend>
@@ -1362,7 +1201,7 @@
   <dialog id="help-dialog" class="event-dialog" aria-labelledby="help-title">
     <article>
       <header>
-        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="help-title">Keyboard shortcuts</h3>
       </header>
       <table class="help-table">
@@ -1391,7 +1230,7 @@
   <dialog id="event-dialog" class="event-dialog" aria-labelledby="dlg-title">
     <article>
       <header>
-        <button class="dlg-x" aria-label="Close" data-close type="button">&times;</button>
+        <button class="close" aria-label="Close" data-close type="button">&times;</button>
         <h3 id="dlg-title"></h3>
         <div id="dlg-tags" class="tags"></div>
       </header>
@@ -1464,7 +1303,6 @@
         page: 1,
         timeZone: LOCAL_TZ,               // default: user's own TZ
         tzExplicit: false,                // becomes true only after user picks in Settings
-        theme: 'auto',                    // 'auto' | 'light' | 'dark'
         notify: { enabled: false, leadMinutes: 15 },
         filters: {
           class: 'all', category: 'all', venue: 'all', dow: 'all',
@@ -1474,32 +1312,6 @@
 
       // Reactive accessor — most code reads via these so a TZ change is live.
       function TZ() { return state.prefs.timeZone || DEFAULT_TZ; }
-
-      // ---- Theme ----------------------------------------------------------
-      // 'auto' removes the attribute so Pico + our CSS fall back to
-      // prefers-color-scheme; 'light' / 'dark' force the choice via the
-      // [data-theme] hook on <html>.
-      function effectiveTheme() {
-        if (state.prefs.theme === 'light' || state.prefs.theme === 'dark') return state.prefs.theme;
-        return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
-          ? 'dark' : 'light';
-      }
-      function applyTheme() {
-        const root = document.documentElement;
-        if (state.prefs.theme === 'light' || state.prefs.theme === 'dark') {
-          root.setAttribute('data-theme', state.prefs.theme);
-        } else {
-          root.removeAttribute('data-theme');
-        }
-        // Keep the browser chrome / address bar tinted to match the active
-        // theme's surface (matches the sticky header), not the brand color —
-        // so the address bar feels continuous with the page.
-        const tint = effectiveTheme() === 'dark' ? '#131a23' : '#ffffff';
-        document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
-          m.setAttribute('content', tint);
-          m.removeAttribute('media');
-        });
-      }
 
       const KNOWN = {
         class:    ['AAGeek', 'NETA65', 'AAWSNY'],
@@ -1549,7 +1361,6 @@
             state.prefs.timeZone   = saved.timeZone;
             state.prefs.tzExplicit = true;
           }
-          if (['auto','light','dark'].includes(saved.theme)) state.prefs.theme = saved.theme;
           if (saved.notify && typeof saved.notify === 'object') {
             if (typeof saved.notify.enabled === 'boolean') state.prefs.notify.enabled = saved.notify.enabled;
             if ([5,15,30,60,1440].includes(saved.notify.leadMinutes)) state.prefs.notify.leadMinutes = saved.notify.leadMinutes;
@@ -2905,15 +2716,40 @@
         else dlg.setAttribute('open', '');
       }
 
+      // Build a friendly "Showing times in X (ABBR)" hint for the settings panel.
+      function updateTzHint() {
+        const hint = $('#tz-current');
+        if (!hint) return;
+        const tz = state.prefs.timeZone || DEFAULT_TZ;
+        const auto = !state.prefs.tzExplicit;
+        const abbr = tzAbbr(new Date());
+        hint.textContent =
+          (auto ? 'Auto: ' : 'Showing times in ') +
+          tz + (abbr ? ' (' + abbr + ')' : '') +
+          (auto ? ' — follows your device.' : '.');
+      }
+
       function showSettings() {
         state.lastFocused = document.activeElement;
-        // The "local" radio represents LOCAL_TZ; the "default" radio represents
-        // the calendar's published TZ (America/Chicago). Anything not exactly
-        // matching DEFAULT_TZ is treated as the user's local view.
-        const showAsLocal = state.prefs.timeZone !== DEFAULT_TZ;
-        $$('input[name="tz"]').forEach(r => r.checked = (r.value === (showAsLocal ? 'local' : 'default')));
-        $$('input[name="theme"]').forEach(r => r.checked = (r.value === state.prefs.theme));
-        $('#local-tz-name').textContent = '(' + LOCAL_TZ + ')';
+        const sel = $('#tz-select');
+        // Reflect the local TZ in the Auto option label so users see what it resolves to.
+        const autoOpt = sel.querySelector('option[value="__auto__"]');
+        if (autoOpt) autoOpt.textContent = `Auto — My local time (${LOCAL_TZ})`;
+        // Reflect current preference. tzExplicit=false → "Auto" regardless of timeZone.
+        if (state.prefs.tzExplicit && state.prefs.timeZone) {
+          sel.value = state.prefs.timeZone;
+          // Fallback if the saved TZ isn't in the dropdown list — add a custom entry.
+          if (sel.value !== state.prefs.timeZone) {
+            const custom = document.createElement('option');
+            custom.value = state.prefs.timeZone;
+            custom.textContent = state.prefs.timeZone;
+            sel.appendChild(custom);
+            sel.value = state.prefs.timeZone;
+          }
+        } else {
+          sel.value = '__auto__';
+        }
+        updateTzHint();
         $('#notify-enabled').checked = !!state.prefs.notify.enabled;
         $('#notify-lead').value = String(state.prefs.notify.leadMinutes);
         const dlg = $('#settings-dialog');
@@ -2924,34 +2760,20 @@
       function wireSettings() {
         $('#settings-btn').addEventListener('click', showSettings);
 
-        $$('input[name="theme"]').forEach(radio => {
-          radio.addEventListener('change', (e) => {
-            const v = e.target.value;
-            if (!['auto','light','dark'].includes(v)) return;
-            state.prefs.theme = v;
-            savePrefs();
-            applyTheme();
-          });
-        });
-
-        // In 'auto' mode, follow live OS-level changes too.
-        if (window.matchMedia) {
-          const mq = window.matchMedia('(prefers-color-scheme: dark)');
-          const onChange = () => { if (state.prefs.theme === 'auto') applyTheme(); };
-          if (mq.addEventListener) mq.addEventListener('change', onChange);
-          else if (mq.addListener) mq.addListener(onChange);
-        }
-
-        $$('input[name="tz"]').forEach(radio => {
-          radio.addEventListener('change', (e) => {
-            const newTz = e.target.value === 'local' ? LOCAL_TZ : DEFAULT_TZ;
-            state.prefs.timeZone   = newTz;
-            state.prefs.tzExplicit = true;        // user has now picked
-            savePrefs();
-            // Re-render everything since dates are TZ-dependent
-            applyFilters();
-            render();
-          });
+        $('#tz-select').addEventListener('change', (e) => {
+          const v = e.target.value;
+          if (v === '__auto__') {
+            state.prefs.timeZone   = LOCAL_TZ;
+            state.prefs.tzExplicit = false;     // follow the device
+          } else {
+            state.prefs.timeZone   = v;
+            state.prefs.tzExplicit = true;      // user has now picked
+          }
+          savePrefs();
+          // Re-render everything since dates are TZ-dependent
+          applyFilters();
+          render();
+          updateTzHint();
         });
 
         $('#notify-enabled').addEventListener('change', async (e) => {
@@ -2973,10 +2795,9 @@
         });
 
         $('#settings-reset').addEventListener('click', () => {
-          if (!confirm('Reset all preferences (filters, view, time zone, theme, reminders)?')) return;
+          if (!confirm('Reset all preferences (filters, view, time zone, reminders)?')) return;
           state.prefs = JSON.parse(JSON.stringify(DEFAULT_PREFS));
           savePrefs();
-          applyTheme();
           $('#settings-dialog').close();
           syncFiltersUI();
           switchView(state.prefs.view);
@@ -3062,7 +2883,6 @@
       function boot() {
         wireGlobalErrors();
         loadPrefs();
-        applyTheme();              // before any render so the first paint matches
         wireFilters();
         wireViews();
         wireCalendar();
