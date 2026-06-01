@@ -264,11 +264,14 @@
       padding: .85rem;
       cursor: pointer;
       display: grid;
-      grid-template-columns: 56px 1fr;
+      /* minmax(0, 1fr) — otherwise the 1fr column's implicit min-width:auto
+         lets nowrap text in .meta-loc push the card past the right edge. */
+      grid-template-columns: 56px minmax(0, 1fr);
       gap: .85rem;
       align-items: start;
       transition: transform .12s ease, box-shadow .15s ease, border-color .15s ease;
     }
+    .event-main { min-width: 0; }    /* belt-and-braces for the grid child */
     .event-card:hover  { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
     .event-card:active { transform: translateY(0); }
     .event-card.past   { opacity: .6; }
@@ -364,7 +367,19 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    /* Location row: take the full width of .event-meta's row so a long
+       address actually has room to ellipsize rather than spill sideways. */
+    .event-meta .meta-loc {
+      flex: 1 1 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
     .event-meta .meta-loc a {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       color: var(--pico-color);
       text-decoration: none;
       border-bottom: 1px dashed var(--pico-muted-color);
@@ -926,7 +941,7 @@
       }
       .filter-search   { grid-column: 1 / -1; }
       .filter-actions  { grid-column: 1 / -1; }
-      .event-card      { grid-template-columns: 72px 1fr; }
+      .event-card      { grid-template-columns: 72px minmax(0, 1fr); }
       .cal-cell        { min-height: 92px; font-size: .85rem; }
       .embed-wrap      { padding-bottom: 75%; }
     }
