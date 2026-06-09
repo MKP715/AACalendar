@@ -1590,53 +1590,84 @@
         const calName = root.getFirstPropertyValue('x-wr-calname');
         if (calName) document.title = calName;
 
+        // Register the feed's own VTIMEZONE definitions. Without this, ical.js
+        // can't resolve "DTSTART;TZID=America/Chicago" and treats the event as
+        // floating — which renders the wrong wall-clock time for anyone not in
+        // the calendar's home zone, and (with getOccurrenceDetails) misplaces
+        // some recurring occurrences by a day.
+        for (const vt of root.getAllSubcomponents('vtimezone')) {
+          try {
+            const tz = new ICAL.Timezone(vt);
+            if (tz.tzid && !ICAL.TimezoneService.has(tz.tzid)) {
+              ICAL.TimezoneService.register(tz.tzid, tz);
+            }
+          } catch (e) { console.warn('VTIMEZONE register failed', e); }
+        }
+
+        // Wall-clock identity key for an ICAL.Time — zone-independent and immune
+        // to the timezone-cache corruption below. Used to match an occurrence to
+        // its modified (RECURRENCE-ID) override.
+        const occKey = (t) =>
+          `${t.year}-${t.month}-${t.day}T${t.hour}:${t.minute}`;
+
         const now = new Date();
         const horizonStart = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 365);
         const horizonEnd   = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 365 * 2);
 
-        // Build an override map so recurrence exceptions are honored when expanding.
-        const overrides = new Map(); // uid -> array of ICAL.Event
+        // Map each series' modified instances (RECURRENCE-ID overrides) by the
+        // wall-clock time of the occurrence they replace, so we can fold them in
+        // ourselves during expansion (see the getOccurrenceDetails note below).
+        const overrides = new Map(); // uid -> Map(occKey -> { event, cancelled })
         for (const ve of root.getAllSubcomponents('vevent')) {
-          const rid = ve.getFirstPropertyValue('recurrence-id');
-          const uid = ve.getFirstPropertyValue('uid');
-          if (rid && uid) {
-            if (!overrides.has(uid)) overrides.set(uid, []);
-            overrides.get(uid).push(new ICAL.Event(ve));
-          }
+          const ridProp = ve.getFirstProperty('recurrence-id');
+          const uid     = ve.getFirstPropertyValue('uid');
+          if (!ridProp || !uid) continue;
+          let ovEvent;
+          try { ovEvent = new ICAL.Event(ve); }
+          catch (e) { console.warn('Bad override VEVENT, skipping', e); continue; }
+          const cancelled =
+            String(ve.getFirstPropertyValue('status') || '').toUpperCase() === 'CANCELLED';
+          if (!overrides.has(uid)) overrides.set(uid, new Map());
+          overrides.get(uid).set(occKey(ridProp.getFirstValue()), { event: ovEvent, cancelled });
         }
 
         const events = [];
         for (const ve of root.getAllSubcomponents('vevent')) {
-          // Skip exception entries — they're attached to their parent via overrides.
+          // Skip exception entries — they're folded into their series via the map above.
           if (ve.getFirstPropertyValue('recurrence-id')) continue;
 
           let baseEvent;
           try { baseEvent = new ICAL.Event(ve); }
           catch (e) { console.warn('Bad VEVENT, skipping', e); continue; }
 
-          // Attach exceptions so iterator returns overridden items where present.
-          const list = overrides.get(baseEvent.uid);
-          if (list) {
-            for (const ex of list) {
-              try { baseEvent.relateException(ex); }
-              catch (e) { console.warn('relateException failed', e); }
-            }
-          }
-
           const rruleSummary = baseEvent.isRecurring() ? summarizeRRule(ve) : '';
           if (baseEvent.isRecurring()) {
+            // We read occurrence times straight from the iterator and resolve
+            // overrides ourselves. ical.js's getOccurrenceDetails() performs an
+            // in-place convertToZone() that corrupts its shared timezone cache
+            // and shifts some occurrences by a whole day, so we never call it.
+            const ovMap = overrides.get(baseEvent.uid);
             try {
               const it = baseEvent.iterator();
               let next, count = 0;
               const MAX = 600;
               while ((next = it.next()) && count < MAX) {
                 count++;
-                const d = baseEvent.getOccurrenceDetails(next);
-                const startJS = d.startDate.toJSDate();
-                const endJS   = d.endDate.toJSDate();
-                if (endJS   < horizonStart) continue;
-                if (startJS > horizonEnd)   break;
-                events.push(buildEvent(d.item, d.startDate, d.endDate, ve, true, rruleSummary));
+                if (next.toJSDate() > horizonEnd) break;   // series time is monotonic
+                const ov = ovMap && ovMap.get(occKey(next));
+                if (ov && ov.cancelled) continue;          // this instance was cancelled
+                let srcEvent, srcVe, startICAL, endICAL;
+                if (ov) {
+                  srcEvent = ov.event; srcVe = ov.event.component;
+                  startICAL = ov.event.startDate; endICAL = ov.event.endDate;
+                } else {
+                  srcEvent = baseEvent; srcVe = ve; startICAL = next;
+                  if (baseEvent.duration) { endICAL = next.clone(); endICAL.addDuration(baseEvent.duration); }
+                  else endICAL = null;
+                }
+                const endJS = endICAL ? endICAL.toJSDate() : null;
+                if (endJS && endJS < horizonStart) continue;
+                events.push(buildEvent(srcEvent, startICAL, endICAL, srcVe, true, rruleSummary));
               }
             } catch (e) {
               console.warn('Recurrence expansion failed for', baseEvent.summary, e);
