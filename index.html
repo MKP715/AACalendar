@@ -1628,7 +1628,7 @@
           const cancelled =
             String(ve.getFirstPropertyValue('status') || '').toUpperCase() === 'CANCELLED';
           if (!overrides.has(uid)) overrides.set(uid, new Map());
-          overrides.get(uid).set(occKey(ridProp.getFirstValue()), { event: ovEvent, cancelled });
+          overrides.get(uid).set(occKey(ridProp.getFirstValue()), { event: ovEvent, cancelled, used: false });
         }
 
         const events = [];
@@ -1655,6 +1655,7 @@
                 count++;
                 if (next.toJSDate() > horizonEnd) break;   // series time is monotonic
                 const ov = ovMap && ovMap.get(occKey(next));
+                if (ov) ov.used = true;                    // folded into its series here
                 if (ov && ov.cancelled) continue;          // this instance was cancelled
                 let srcEvent, srcVe, startICAL, endICAL;
                 if (ov) {
@@ -1679,6 +1680,27 @@
             if (endJS   && endJS   < horizonStart) continue;
             if (startJS && startJS > horizonEnd)   continue;
             events.push(buildEvent(baseEvent, baseEvent.startDate, baseEvent.endDate, ve, false, ''));
+          }
+        }
+
+        // Safety net: a RECURRENCE-ID override normally replaces an occurrence the
+        // series iterator produces, so it gets folded in above. But if the base
+        // series is absent from the export (its long-past DTSTART fell outside
+        // Google's lookback window, or the series was deleted leaving only a
+        // future modified instance), or the RID doesn't line up with any expanded
+        // occurrence, the override is never consumed — and a real, user-visible
+        // event would silently disappear. Re-add any un-consumed, non-cancelled
+        // override as a standalone event so nothing is ever dropped.
+        for (const ovMap of overrides.values()) {
+          for (const ov of ovMap.values()) {
+            if (ov.used || ov.cancelled) continue;
+            const oe   = ov.event;
+            const sJS  = oe.startDate && oe.startDate.toJSDate();
+            if (!sJS) continue;
+            const eJS  = oe.endDate ? oe.endDate.toJSDate() : null;
+            if (eJS && eJS < horizonStart) continue;
+            if (sJS > horizonEnd)          continue;
+            events.push(buildEvent(oe, oe.startDate, oe.endDate, oe.component, false, ''));
           }
         }
 
