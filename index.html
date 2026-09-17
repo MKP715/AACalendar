@@ -1432,6 +1432,168 @@
     .desc-html a { color: var(--brand); }
     .desc-html strong, .desc-html b { color: var(--text); font-weight: 620; }
 
+    /* Event dialog: one scroll region ---------------------------------- *
+       The event dialog can now carry a flyer image on top of the meta rows
+       and the description, so a per-block max-height no longer works — the
+       parts would each scroll independently and the article could still grow
+       past the viewport. Instead the article becomes a flex column capped to
+       the viewport, with header/footer pinned and everything between them in
+       a single scroller. Scoped to #event-dialog so the settings and help
+       dialogs (which share the .event-dialog class) keep their own layout. */
+    #event-dialog article {
+      display: flex;
+      flex-direction: column;
+      max-height: min(92dvh, 58rem);
+    }
+    #event-dialog > article > header,
+    #event-dialog > article > footer { flex: 0 0 auto; }
+    .dlg-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: .3rem;
+    }
+    /* The scroller owns the overflow now. */
+    #event-dialog .dlg-body { max-height: none; overflow: visible; padding-right: 0; }
+
+    /* Event flyer / image ----------------------------------------------- *
+       Images come off Google Drive at wildly different aspect ratios, so the
+       frame never imposes one: it centres the image on a neutral mat and only
+       caps how tall it may get. Portrait flyers letterbox on the sides,
+       panoramas on the top and bottom, and neither is cropped. */
+    .dlg-media { margin: 0 0 .85rem 0; display: grid; gap: .6rem; }
+    .media-figure { margin: 0; display: grid; gap: .4rem; }
+    .media-frame {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* Shrink-to-fit so the mat hugs the image instead of leaving a wide empty
+         band beside a portrait flyer on a desktop-width dialog. */
+      width: fit-content;
+      max-width: 100%;
+      margin-inline: auto;
+      min-width: 6rem;
+      min-height: 6rem;
+      max-height: min(42vh, 24rem);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .media-frame.loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        transparent 0%, rgba(255,255,255,.28) 50%, transparent 100%);
+      animation: media-shimmer 1.1s linear infinite;
+    }
+    @keyframes media-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    .media-img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: min(42vh, 24rem);
+      object-fit: contain;
+      cursor: zoom-in;
+      opacity: 0;
+      transition: opacity var(--dur) var(--ease);
+    }
+    .media-img.ready { opacity: 1; }
+    .media-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .4rem;
+      font-size: .76rem;
+    }
+    .media-bar .media-btn {
+      margin: 0;
+      width: auto;
+      padding: .3rem .7rem;
+      font-size: .76rem;
+      font-weight: 560;
+      border-radius: var(--r-sm);
+      line-height: 1.3;
+    }
+    .media-bar .media-hint { color: var(--text-3); margin-left: auto; }
+    .media-fallback {
+      padding: .7rem .85rem;
+      font-size: .8rem;
+      color: var(--text-2);
+      background: var(--surface-2);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--r-md);
+    }
+    .media-fallback a { color: var(--brand); overflow-wrap: anywhere; }
+
+    /* Lightbox ----------------------------------------------------------- *
+       A <dialog> rather than a fixed overlay: the event dialog is already in
+       the top layer, and only another modal dialog can paint above it. */
+    #lightbox {
+      border: none;
+      padding: 0;
+      background: transparent;
+      max-width: 100vw;
+      max-height: 100dvh;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    #lightbox::backdrop {
+      background: rgba(6,9,14,.88);
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+    }
+    .lb-wrap {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(3.5rem + env(safe-area-inset-top, 0px)) 1rem
+               calc(1rem + env(safe-area-inset-bottom, 0px));
+      cursor: zoom-out;
+    }
+    .lb-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: var(--r-sm);
+      box-shadow: var(--sh-4);
+      cursor: default;
+    }
+    .lb-actions {
+      position: absolute;
+      top: calc(.85rem + env(safe-area-inset-top, 0px));
+      right: .85rem;
+      display: inline-flex;
+      gap: .4rem;
+      z-index: 1;
+    }
+    .lb-actions button {
+      margin: 0;
+      width: auto;
+      padding: .35rem .8rem;
+      font-size: .78rem;
+      font-weight: 560;
+      border-radius: var(--r-sm);
+      background: rgba(255,255,255,.14);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.28);
+      line-height: 1.3;
+    }
+    .lb-actions button:hover { background: rgba(255,255,255,.24); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .media-frame.loading::after { animation: none; }
+    }
+
     /* Dialog close (X). Anchored to the article so it sits in the corner
        regardless of Pico's header margins. Pico's <button> reset is
        display:block; width:100%, so the size is locked explicitly. */
@@ -1966,9 +2128,13 @@
         <h3 id="dlg-title"></h3>
         <div id="dlg-tags" class="tags"></div>
       </header>
-      <div id="dlg-meta" class="dlg-meta"></div>
-      <div id="dlg-body" class="dlg-body"></div>
+      <div class="dlg-scroll">
+        <div id="dlg-meta" class="dlg-meta"></div>
+        <div id="dlg-media" class="dlg-media" hidden></div>
+        <div id="dlg-body" class="dlg-body"></div>
+      </div>
       <footer>
+        <button id="dlg-share-btn" type="button" class="outline" title="Share this event">⇪ Share</button>
         <button id="dlg-ics" type="button" class="outline" title="Download as .ics">⤓ .ics</button>
         <a id="dlg-add" target="_blank" rel="noopener" role="button" class="outline">＋ Google</a>
         <a id="dlg-link" target="_blank" rel="noopener" role="button" class="contrast outline">Open in Google</a>
@@ -1985,6 +2151,18 @@
       Single-file SPA · No server required.
     </small>
   </footer>
+
+  <!-- Full-size image viewer. A <dialog> so it can paint above the event
+       dialog, which is itself already in the top layer. -->
+  <dialog id="lightbox" aria-label="Event image">
+    <div class="lb-actions">
+      <button id="lb-download" type="button">⤓ Download</button>
+      <button id="lb-close" type="button" data-close autofocus>× Close</button>
+    </div>
+    <div class="lb-wrap" data-close>
+      <img id="lb-img" class="lb-img" alt="" />
+    </div>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -2493,6 +2671,7 @@
           descriptionHtml: parsed.bodyHtml,
           descriptionText: parsed.bodyText,
           tags: parsed.tags,
+          images: parsed.images,
           recurring: !!recurring,
           rruleSummary: rruleSummary || '',
         };
@@ -2503,7 +2682,10 @@
       const TAG_LINE_SEP = /<br\s*\/?>|<\/p>|\r?\n/i;
 
       function processDescription(rawDescription) {
-        const empty = { tags: { class: null, category: null, venue: null }, bodyHtml: '', bodyText: '' };
+        const empty = {
+          tags: { class: null, category: null, venue: null },
+          bodyHtml: '', bodyText: '', images: [],
+        };
         if (!rawDescription) return empty;
 
         // 1. Find the tag line (before the first <br>/newline). HTML decoded.
@@ -2511,16 +2693,29 @@
         const firstSeg = decodeEntities(firstSegRaw);
         const tags = parseTagsFromLine(firstSeg);
 
-        // 2. If we found any tags, strip the tag line + leading "<br><br>--<br>"
+        // 2. Pull out any "IMG: <url>" lines before anything else touches the
+        //    string. They sit between the tag line and the "--" separator, and
+        //    Google Calendar auto-links the pasted URL, so the line arrives as
+        //    IMG:<a href="...">...</a>. Each line collapses to a bare <br> so
+        //    the tag-line / "--" strips below still see the shape they expect.
+        const images = [];
+        let rest = rawDescription.replace(IMG_LINE_RE, (_m, payload) => {
+          for (const url of extractUrls(payload)) {
+            const img = buildImageRef(url);
+            if (img && !images.some(x => x.key === img.key)) images.push(img);
+          }
+          return '<br>';
+        });
+
+        // 3. If we found any tags, strip the tag line + leading "<br><br>--<br>"
         //    separator that this calendar always uses.
-        let rest = rawDescription;
         if (tags.class || tags.category || tags.venue) {
-          rest = rawDescription
+          rest = rest
             .replace(/^[^<\n\r]*(?:<br\s*\/?>\s*|\r?\n\s*)+/i, '')   // drop tag line + breaks
             .replace(/^\s*-{2,}\s*(?:<br\s*\/?>\s*|\r?\n\s*)+/i, ''); // drop "--" separator
         }
 
-        // 3. Sanitize the remaining HTML.
+        // 4. Sanitize the remaining HTML.
         const frag = sanitizeHTML(rest);
         const wrap = document.createElement('div');
         if (frag) wrap.appendChild(frag);
@@ -2529,7 +2724,94 @@
         wrap.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
         const bodyText = (wrap.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
 
-        return { tags, bodyHtml, bodyText };
+        return { tags, bodyHtml, bodyText, images };
+      }
+
+      // -------------------------- Event images --------------------------
+      // An "IMG:" marker runs to the end of its own line (a <br>, a </p> or a
+      // real newline). Anchored to a line start, so a stray "IMG:" mid-sentence
+      // in the body copy is left alone.
+      const IMG_LINE_RE =
+        /(?:^|<br\s*\/?>|<\/p>|\r?\n)[ \t]*IMG[ \t]*:[ \t]*([\s\S]*?)(?=<br\s*\/?>|<\/p>|\r?\n|$)/gi;
+
+      // Every URL in a fragment of description HTML. href attributes are read
+      // first so an auto-linked URL is still found when Google truncated or
+      // decorated the visible link text.
+      function extractUrls(fragment) {
+        if (!fragment) return [];
+        const text = decodeEntities(fragment);
+        const out = [];
+        const add = (u) => {
+          const clean = String(u).trim().replace(/[)\].,;"']+$/, '');
+          if (/^https?:\/\//i.test(clean) && !out.includes(clean)) out.push(clean);
+        };
+        for (const m of text.matchAll(/href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) add(m[1] || m[2]);
+        for (const m of text.replace(/<[^>]*>/g, ' ').matchAll(/https?:\/\/[^\s<>"']+/gi)) add(m[0]);
+        return out;
+      }
+
+      function hostOf(url) {
+        try { return new URL(url).hostname; } catch { return ''; }
+      }
+
+      // Drive share links come in several shapes; all of them carry the file id.
+      function driveFileId(url) {
+        const m = /\/file\/d\/([A-Za-z0-9_-]{10,})/.exec(url)
+               || /\/d\/([A-Za-z0-9_-]{10,})/.exec(url)
+               || /[?&]id=([A-Za-z0-9_-]{10,})/.exec(url);
+        return m ? m[1] : '';
+      }
+
+      // Turn a pasted link into something an <img> can actually render.
+      //
+      // A Drive "/file/d/<id>/view" URL is an HTML viewer page, not an image, so
+      // it is rewritten to Drive's file-content hosts. Which host is usable
+      // depends on how the bytes are being consumed, and the difference is not
+      // obvious — measured against the live feed:
+      //
+      //   as <img src>   lh3.googleusercontent.com, drive.google.com/thumbnail
+      //                  and drive.usercontent.google.com all serve the image.
+      //   via fetch()    ONLY lh3 sends Access-Control-Allow-Origin. The other
+      //                  two advertise it on a redirect hop but not on the final
+      //                  response, so a cross-origin fetch fails outright.
+      //
+      // So the display lists may fall back across all three, while the download
+      // list stays on lh3 — otherwise every download logs two CORS failures on
+      // the way to the host that was always going to answer.
+      // ("uc?export=view" appears nowhere: it now returns 403 for link-shared
+      // files.)
+      function buildImageRef(url) {
+        const id = driveFileId(url);
+        if (id && /(^|\.)google(usercontent)?\.com$/i.test(hostOf(url))) {
+          const lh3 = 'https://lh3.googleusercontent.com/d/' + id;
+          const raw = 'https://drive.usercontent.google.com/download?id=' + id;
+          return {
+            key: 'drive:' + id,
+            // Inline frame: width-capped, so a 12MP flyer is not pulled down in
+            // full just to fill a few hundred CSS pixels.
+            srcs: [
+              lh3 + '=w1600',
+              'https://drive.google.com/thumbnail?id=' + id + '&sz=w1600',
+              raw + '&export=view',
+            ],
+            // Lightbox: enough pixels for a full-screen retina view. Drive caps
+            // at the original, so a small file is never upscaled.
+            fullSrcs: [lh3 + '=w2400', 'https://drive.google.com/thumbnail?id=' + id + '&sz=w2400', raw + '&export=view'],
+            // Download: "=s0" is the untouched original.
+            downloadSrcs: [lh3 + '=s0', lh3 + '=w2400'],
+            // Last resort when even that fetch fails — a plain navigation, which
+            // no CORS policy applies to.
+            download: raw + '&export=download',
+            view: 'https://drive.google.com/file/d/' + id + '/view',
+          };
+        }
+        const proto = safeUrlProtocol(url);
+        if (proto !== 'https:' && proto !== 'http:') return null;
+        return {
+          key: 'url:' + url,
+          srcs: [url], fullSrcs: [url], downloadSrcs: [url],
+          download: url, view: url,
+        };
       }
 
       function parseTagsFromLine(line) {
@@ -2905,27 +3187,65 @@
       }
 
       // Plain-text rendering of an event, for the share sheet or clipboard.
-      function buildShareText(ev) {
+      // A plain-text card that reads the same in WhatsApp, Messages, Slack or
+      // an email body — no markdown, no HTML, one fact per line, so nothing
+      // depends on the receiving app rendering anything.
+      //
+      // `omitUrl` is set when the share sheet is carrying the page link in its
+      // own `url` field, since most platforms append that themselves and the
+      // link would otherwise appear twice.
+      function buildShareText(ev, omitUrl) {
         const lines = [];
         lines.push(ev.summary);
-        lines.push(fmt(ev.start,
-          { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }, ev.isAllDay));
-        lines.push(ev.isAllDay ? 'All day' : formatTimeRange(ev));
-        if (ev.recurring && ev.rruleSummary) lines.push('Repeats: ' + ev.rruleSummary);
+
         const t = [ev.tags.class, ev.tags.category, ev.tags.venue].filter(Boolean);
-        if (t.length)    lines.push(t.join(' · '));
-        if (ev.location) lines.push('Where: ' + ev.location);
+        if (t.length) lines.push(t.join(' · '));
+
+        lines.push('');
+        lines.push('🗓  ' + fmt(ev.start,
+          { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }, ev.isAllDay));
+        lines.push('⏰  ' + (ev.isAllDay ? 'All day' : formatTimeRange(ev)));
+        if (ev.recurring && ev.rruleSummary) lines.push('🔁  ' + ev.rruleSummary);
+        if (ev.location) lines.push('📍  ' + ev.location);
+
         const link = (ev.url && safeUrlProtocol(ev.url)) ? ev.url : '';
-        if (link)        lines.push('Link: ' + link);
-        if (ev.descriptionText) { lines.push(''); lines.push(ev.descriptionText); }
-        return lines.join('\n');
+        if (link) lines.push('🔗  ' + link);
+        if (Array.isArray(ev.images) && ev.images.length) {
+          lines.push('🖼  ' + ev.images[0].view);
+        }
+
+        // Keep the body short enough that the whole thing still fits in a chat
+        // bubble; the full text is always a tap away in the app.
+        if (ev.descriptionText) {
+          lines.push('');
+          lines.push(truncate(ev.descriptionText.replace(/\n{3,}/g, '\n\n'), 700));
+        }
+
+        if (!omitUrl) {
+          const page = pageShareUrl();
+          if (page) { lines.push(''); lines.push('All events: ' + page); }
+        }
+        return lines.join('\n').trim();
+      }
+
+      // The app's own address, when it has a shareable one (a file:// copy or a
+      // sandboxed embed does not).
+      function pageShareUrl() {
+        try {
+          const u = new URL(location.href);
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+          u.hash = '';
+          return u.toString();
+        } catch { return ''; }
       }
 
       async function shareEvent(ev) {
-        const text = buildShareText(ev);
+        const page = pageShareUrl();
         if (navigator.share) {
+          const payload = { title: ev.summary, text: buildShareText(ev, !!page) };
+          if (page) payload.url = page;
           try {
-            await navigator.share({ title: ev.summary, text });
+            await navigator.share(payload);
             return;
           } catch (e) {
             // The user dismissing the sheet is not a failure — don't then
@@ -2934,7 +3254,7 @@
             // Anything else (unsupported payload, permission) falls back below.
           }
         }
-        const ok = await copyText(text);
+        const ok = await copyText(buildShareText(ev, false));
         showToast(ok ? 'Event copied as text' : 'Could not copy — check clipboard permissions');
       }
 
@@ -3518,6 +3838,167 @@
         } catch { return ''; }
       }
 
+
+      // ------------------------- Image rendering ------------------------
+      // Fill the dialog's media slot for `ev`. Each image gets a frame that
+      // letterboxes rather than crops (flyers are portrait, banners are wide,
+      // and neither should be cut), a download button, and click-to-zoom.
+      function renderEventMedia(ev) {
+        const slot = $('#dlg-media');
+        slot.innerHTML = '';
+        const imgs = Array.isArray(ev.images) ? ev.images : [];
+        slot.hidden = imgs.length === 0;
+        if (!imgs.length) return;
+
+        imgs.forEach((ref, i) => {
+          const label = imgs.length > 1
+            ? `${ev.summary} — image ${i + 1} of ${imgs.length}`
+            : `${ev.summary} — event image`;
+
+          const figure = el('figure', { class: 'media-figure' });
+          const frame = el('div', { class: 'media-frame loading' });
+          const img = el('img', {
+            class: 'media-img',
+            alt: label,
+            loading: 'lazy',
+            decoding: 'async',
+            referrerpolicy: 'no-referrer',
+          });
+
+          // Walk the candidate hosts until one of them actually decodes; if
+          // every one fails the frame is replaced by a plain link, so a broken
+          // or unshared image degrades to something the user can still follow.
+          let attempt = 0;
+          img.addEventListener('load', () => {
+            frame.classList.remove('loading');
+            img.classList.add('ready');
+          });
+          img.addEventListener('error', () => {
+            attempt += 1;
+            if (attempt < ref.srcs.length) { img.src = ref.srcs[attempt]; return; }
+            frame.classList.remove('loading');
+            figure.replaceChildren(el('div', { class: 'media-fallback' },
+              'This event has an image, but it could not be loaded — it may not be shared publicly. ',
+              el('a', { href: ref.view, target: '_blank', rel: 'noopener' }, 'Open it directly')));
+          });
+          img.src = ref.srcs[0];
+
+          img.addEventListener('click', () => openLightbox(ref, ev, label));
+          frame.appendChild(img);
+
+          const bar = el('div', { class: 'media-bar' },
+            el('button', {
+              type: 'button',
+              class: 'outline media-btn',
+              title: 'Download this image',
+              onClick: () => downloadImage(ref, ev, i),
+            }, '⤓ Download image'),
+            el('button', {
+              type: 'button',
+              class: 'outline media-btn',
+              title: 'View full size',
+              onClick: () => openLightbox(ref, ev, label),
+            }, '⤢ Full size'),
+            el('span', { class: 'media-hint' }, 'Tap or click to zoom'));
+
+          figure.append(frame, bar);
+          slot.appendChild(figure);
+        });
+      }
+
+      // A file name the user will recognise in their downloads folder.
+      function imageFileName(ev, ext, index) {
+        const base = (ev.summary || 'event')
+          .replace(/[^\w-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'event';
+        const date = ev.start.toISOString().slice(0, 10);
+        const n = index > 0 ? `_${index + 1}` : '';
+        return `${base}_${date}${n}.${ext}`;
+      }
+
+      const MIME_EXT = {
+        'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
+        'image/gif': 'gif', 'image/webp': 'webp', 'image/avif': 'avif',
+        'image/svg+xml': 'svg', 'image/bmp': 'bmp', 'application/pdf': 'pdf',
+      };
+
+      // Drive's content hosts send Access-Control-Allow-Origin: *, so the bytes
+      // can be fetched and saved under a meaningful name. If that fails (offline,
+      // a host that does not allow the origin, a file needing sign-in), fall back
+      // to opening Drive's own download endpoint in a new tab.
+      async function downloadImage(ref, ev, index) {
+        showToast('Preparing image…');
+        for (const src of (ref.downloadSrcs || ref.srcs)) {
+          try {
+            const res = await fetch(src, { mode: 'cors', credentials: 'omit' });
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            if (!/^image\/|^application\/pdf/.test(blob.type)) continue;
+            const url = URL.createObjectURL(blob);
+            const a = el('a', {
+              href: url,
+              download: imageFileName(ev, MIME_EXT[blob.type] || 'jpg', index || 0),
+            });
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            showToast('Image downloaded');
+            return;
+          } catch { /* try the next host */ }
+        }
+        window.open(ref.download, '_blank', 'noopener');
+        showToast('Opened the image in a new tab');
+      }
+
+      // ---------------------------- Lightbox ----------------------------
+      let lightboxRef = null;
+
+      function openLightbox(ref, ev, label) {
+        const dlg = $('#lightbox');
+        const img = $('#lb-img');
+        if (!dlg || !img) return;
+        lightboxRef = { ref, ev };
+        const sources = ref.fullSrcs || ref.srcs;
+        img.alt = label || '';
+
+        let attempt = 0;
+        img.onerror = () => {
+          attempt += 1;
+          if (attempt < sources.length) img.src = sources[attempt];
+        };
+        img.src = sources[0];
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        else dlg.setAttribute('open', '');
+      }
+
+      function closeLightbox() {
+        const dlg = $('#lightbox');
+        const img = $('#lb-img');
+        if (dlg && dlg.open) dlg.close();
+        // Drop the decoded bitmap rather than keeping it alive behind a closed
+        // dialog — flyers are routinely multi-megapixel.
+        if (img) { img.onerror = null; img.removeAttribute('src'); }
+        lightboxRef = null;
+      }
+
+      function wireLightbox() {
+        const dlg = $('#lightbox');
+        if (!dlg) return;
+        dlg.addEventListener('click', (e) => {
+          // The backdrop and the padded wrapper both dismiss; the image itself
+          // does not, so a stray click while panning does not close the viewer.
+          if (e.target === dlg || e.target.hasAttribute('data-close')) closeLightbox();
+        });
+        dlg.addEventListener('close', () => {
+          const img = $('#lb-img');
+          if (img) { img.onerror = null; img.removeAttribute('src'); }
+          lightboxRef = null;
+        });
+        $('#lb-download').addEventListener('click', () => {
+          if (lightboxRef) downloadImage(lightboxRef.ref, lightboxRef.ev, 0);
+        });
+      }
+
       // ----------------------------- Dialog -----------------------------
       function openDialog(ev) {
         state.lastFocused = document.activeElement;
@@ -3549,6 +4030,8 @@
           row.appendChild(renderLocationMeta(ev.location, false));
           meta.appendChild(row);
         }
+
+        renderEventMedia(ev);
 
         const body = $('#dlg-body');
         body.innerHTML = '';
@@ -3584,6 +4067,10 @@
         const shareBtn = $('#dlg-share');
         shareBtn.innerHTML = SHARE_SVG;
         shareBtn.onclick = () => shareEvent(ev);
+        $('#dlg-share-btn').onclick = () => shareEvent(ev);
+
+        const scroll = $('#event-dialog .dlg-scroll');
+        if (scroll) scroll.scrollTop = 0;   // reopening must not inherit the last scroll
 
         const dlg = $('#event-dialog');
         if (typeof dlg.showModal === 'function') dlg.showModal();
@@ -3735,6 +4222,12 @@
             if (t.closest('[data-close]')) dlg.close();
           });
           dlg.addEventListener('close', () => {
+            // Drop any loaded event images so a closed dialog stops holding on
+            // to multi-megapixel bitmaps.
+            if (dlg.id === 'event-dialog') {
+              const media = $('#dlg-media');
+              if (media) { media.innerHTML = ''; media.hidden = true; }
+            }
             // Return focus to the element that opened the dialog.
             if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
               try { state.lastFocused.focus(); } catch { /* ignore */ }
@@ -3968,6 +4461,7 @@
         wireViews();
         wireCalendar();
         wireDialog();
+        wireLightbox();
         wireSettings();
         wireKeyboardShortcuts();
         syncFiltersUI();
