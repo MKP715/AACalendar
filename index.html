@@ -3,8 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#141a22" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Resolve the saved theme before first paint so a dark-theme user never
+       sees a white flash. Mirrors applyAppearance() in the app script. -->
+  <script>
+    (function () {
+      var PALETTES = { ocean: 'dark', sepia: 'light', lavender: 'light' };
+      var theme = 'auto', density = 'standard';
+      try {
+        var p = JSON.parse(localStorage.getItem('aageek_prefs_v2') || '{}');
+        if (typeof p.theme === 'string') theme = p.theme;
+        if (p.density === 'compact') density = 'compact';
+      } catch (e) {}
+      var sysDark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+      var mode = PALETTES[theme] || (theme === 'light' || theme === 'dark' ? theme : (sysDark ? 'dark' : 'light'));
+      var r = document.documentElement;
+      r.setAttribute('data-theme', mode);
+      if (PALETTES[theme]) r.setAttribute('data-palette', theme);
+      r.setAttribute('data-density', density);
+    })();
+  </script>
   <meta name="referrer" content="no-referrer-when-downgrade" />
   <title>AAGeek Events</title>
   <meta name="description" content="AAGeek / NETA65 / AAWSNY events — filter by class, category, and venue." />
@@ -20,6 +39,17 @@
        binder hooks, and a bold white "A" monogram for AAGeek. -->
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314b8a6'/><rect x='4' y='9' width='24' height='5' fill='%230f766e'/><rect x='9' y='5' width='2.4' height='6.5' rx='1.2' fill='%230f766e'/><rect x='20.6' y='5' width='2.4' height='6.5' rx='1.2' fill='%230f766e'/><text x='16' y='25.5' text-anchor='middle' font-family='system-ui,sans-serif' font-size='15' font-weight='800' fill='white'>A</text></svg>" />
+
+  <!-- Installable app (PWA): manifest + icons. The service worker (sw.js)
+       is registered at the end of the app script. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="AAGeek" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="application-name" content="AAGeek Events" />
 
   <!-- Inter (SIL OFL). display=swap so text paints immediately in the
        system fallback if Google Fonts is slow or blocked. -->
@@ -106,31 +136,92 @@
       color-scheme: light;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:            #0b0e13;
-        --surface:       #141a22;
-        --surface-2:     #1b232d;
-        --surface-3:     #232d39;
-        --border:        #262f3b;
-        --border-strong: #38434f;
-        --text:          #e6edf5;
-        --text-2:        #9dadbe;
-        --text-3:        #6c7d8f;
+    :root[data-theme="dark"] {
+      --bg:            #0b0e13;
+      --surface:       #141a22;
+      --surface-2:     #1b232d;
+      --surface-3:     #232d39;
+      --border:        #262f3b;
+      --border-strong: #38434f;
+      --text:          #e6edf5;
+      --text-2:        #9dadbe;
+      --text-3:        #6c7d8f;
 
-        --brand:         #2dd4bf;
-        --brand-hover:   #5eead4;
-        --brand-soft:    rgba(45,212,191,.13);
-        --brand-ring:    rgba(45,212,191,.34);
-        --on-brand:      #052e2b;
+      --brand:         #2dd4bf;
+      --brand-hover:   #5eead4;
+      --brand-soft:    rgba(45,212,191,.13);
+      --brand-ring:    rgba(45,212,191,.34);
+      --on-brand:      #052e2b;
 
-        --sh-1: 0 1px 2px rgba(0,0,0,.35);
-        --sh-2: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px -1px rgba(0,0,0,.35);
-        --sh-3: 0 6px 16px -6px rgba(0,0,0,.55), 0 2px 6px -2px rgba(0,0,0,.35);
-        --sh-4: 0 20px 40px -16px rgba(0,0,0,.7), 0 4px 12px -4px rgba(0,0,0,.45);
+      --sh-1: 0 1px 2px rgba(0,0,0,.35);
+      --sh-2: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px -1px rgba(0,0,0,.35);
+      --sh-3: 0 6px 16px -6px rgba(0,0,0,.55), 0 2px 6px -2px rgba(0,0,0,.35);
+      --sh-4: 0 20px 40px -16px rgba(0,0,0,.7), 0 4px 12px -4px rgba(0,0,0,.45);
 
-        color-scheme: dark;
-      }
+      color-scheme: dark;
+    }
+
+    /* Themes ------------------------------------------------------------ *
+       JS (applyAppearance, plus a tiny pre-paint script in <head>) sets two
+       attributes on <html>:
+         data-theme    light | dark — the base mode. Pico keys its own
+                       palette off this same attribute, so form controls,
+                       chevrons etc. follow along.
+         data-palette  ocean | sepia | lavender — an optional colour set
+                       layered over that base. Absent for plain light/dark.
+       Class accents (AAGeek teal, NETA65 purple, AAWSNY amber) stay fixed in
+       every theme: they carry meaning, not decoration. */
+    :root[data-palette="ocean"] {          /* dark base */
+      --bg:            #07111f;
+      --surface:       #0d1a2c;
+      --surface-2:     #13233a;
+      --surface-3:     #1a2d48;
+      --border:        #1c304b;
+      --border-strong: #2a4466;
+      --text:          #e2ecf8;
+      --text-2:        #9cb1cb;
+      --text-3:        #69809e;
+      --brand:         #38bdf8;
+      --brand-hover:   #7dd3fc;
+      --brand-soft:    rgba(56,189,248,.14);
+      --brand-ring:    rgba(56,189,248,.36);
+      --on-brand:      #032235;
+    }
+    :root[data-palette="sepia"] {          /* light base */
+      --bg:            #f3ebdd;
+      --surface:       #fbf6ec;
+      --surface-2:     #f1e6d4;
+      --surface-3:     #e6d7c0;
+      --border:        #e2d2ba;
+      --border-strong: #cdb896;
+      --text:          #3a2e21;
+      --text-2:        #6b5943;
+      --text-3:        #9a866c;
+      --brand:         #b45309;
+      --brand-hover:   #92400e;
+      --brand-soft:    rgba(180,83,9,.10);
+      --brand-ring:    rgba(180,83,9,.30);
+      --on-brand:      #ffffff;
+      --sh-1: 0 1px 2px rgba(80,55,20,.07);
+      --sh-2: 0 1px 3px rgba(80,55,20,.09), 0 1px 2px -1px rgba(80,55,20,.06);
+      --sh-3: 0 6px 16px -6px rgba(80,55,20,.18), 0 2px 6px -2px rgba(80,55,20,.08);
+      --sh-4: 0 20px 40px -16px rgba(80,55,20,.32), 0 4px 12px -4px rgba(80,55,20,.12);
+    }
+    :root[data-palette="lavender"] {       /* light base */
+      --bg:            #f5f3fb;
+      --surface:       #ffffff;
+      --surface-2:     #f0ecf9;
+      --surface-3:     #e5dff3;
+      --border:        #e4ddf1;
+      --border-strong: #cdc3e4;
+      --text:          #1d1532;
+      --text-2:        #5a4f74;
+      --text-3:        #8d83a6;
+      --brand:         #7c3aed;
+      --brand-hover:   #6d28d9;
+      --brand-soft:    rgba(124,58,237,.10);
+      --brand-ring:    rgba(124,58,237,.30);
+      --on-brand:      #ffffff;
     }
 
     /* ------------------------------------------------------------------ *
@@ -207,9 +298,7 @@
       --pico-mark-background-color: transparent;
       --pico-outline-width: 2px;
     }
-    @media (prefers-color-scheme: dark) {
-      :root:root { --pico-del-color: #f87171; }
-    }
+    :root:root[data-theme="dark"] { --pico-del-color: #f87171; }
 
     /* Pico turns [role=search] into a full pill; we want the same radius as
        every other control. */
@@ -304,16 +393,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    /* The category list is orientation, not a headline — keep it quiet and
-       off the phone viewport entirely. */
-    .app-header .brand p {
-      display: none;
-      margin: .2rem 0 0;
-      font-size: .75rem;
-      color: var(--text-3);
-      letter-spacing: .01em;
-    }
-
     .brand-actions { display: inline-flex; gap: .35rem; flex-shrink: 0; }
 
     .help-btn {
@@ -537,6 +616,46 @@
     .chip[data-count="0"]:not(.active) { cursor: not-allowed; }
 
     .filter-search input { margin: 0; }
+
+    /* Date filter: chips for common windows, a From/To pair for "Custom",
+       and Year / Month / Day selects. Labels sit above each control. */
+    .date-range,
+    .date-parts {
+      display: grid;
+      gap: .45rem;
+      margin-top: .15rem;
+    }
+    .date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .date-parts { grid-template-columns: 1.2fr 1fr 1fr; }
+    .date-range[hidden] { display: none; }
+    .date-range label,
+    .date-parts label {
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+      margin: 0;
+      min-width: 0;
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .date-range input,
+    .date-parts select {
+      margin: 0;
+      width: 100%;
+      min-width: 0;
+      height: auto;
+      padding: .3rem .45rem;
+      font-size: .8rem;
+      background-color: var(--surface);
+      border-radius: var(--r-xs);
+    }
+    .date-parts select { padding-right: 1.4rem; background-position: center right .35rem; }
+    /* A narrowing select gets the brand outline, like an active chip. */
+    .date-parts select.set,
+    .date-range input.set { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand-soft); }
+
+    .show-opts { display: flex; flex-direction: column; gap: .5rem; }
     .filter-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
     .filter-actions button {
       margin: 0;
@@ -800,12 +919,10 @@
       border-radius: .2em;
       font-weight: 600;
     }
-    @media (prefers-color-scheme: dark) {
-      mark          { background: rgba(250,204,21,.26); color: #fde68a; }
-      .rel-today    { background: rgba(248,113,113,.14); color: #fca5a5; border-color: rgba(248,113,113,.26); }
-      .rel-tomorrow { background: rgba(251,191,36,.14);  color: #fcd34d; border-color: rgba(251,191,36,.26); }
-      .rel-soon     { background: rgba(96,165,250,.14);  color: #93c5fd; border-color: rgba(96,165,250,.26); }
-    }
+    [data-theme="dark"] mark          { background: rgba(250,204,21,.26); color: #fde68a; }
+    [data-theme="dark"] .rel-today    { background: rgba(248,113,113,.14); color: #fca5a5; border-color: rgba(248,113,113,.26); }
+    [data-theme="dark"] .rel-tomorrow { background: rgba(251,191,36,.14);  color: #fcd34d; border-color: rgba(251,191,36,.26); }
+    [data-theme="dark"] .rel-soon     { background: rgba(96,165,250,.14);  color: #93c5fd; border-color: rgba(96,165,250,.26); }
 
     .event-meta {
       font-size: .755rem;
@@ -884,16 +1001,14 @@
     .tag.venue-Hybrid  { --tag-bg: rgba(236,72,153,.11);  --tag-fg: #be185d; --tag-bd: rgba(236,72,153,.24); }
     .tag.past-tag      { --tag-bg: rgba(107,114,128,.12); --tag-fg: #4b5563; --tag-bd: rgba(107,114,128,.24); }
 
-    @media (prefers-color-scheme: dark) {
-      .tag.class-AAGeek  { --tag-fg: #5eead4; }
-      .tag.class-NETA65  { --tag-fg: #c4b5fd; }
-      .tag.class-AAWSNY  { --tag-fg: #fcd34d; }
-      .tag.cat           { --tag-fg: #a5b4fc; }
-      .tag.venue-Virtual { --tag-fg: #93c5fd; }
-      .tag.venue-Physical{ --tag-fg: #6ee7b7; }
-      .tag.venue-Hybrid  { --tag-fg: #f9a8d4; }
-      .tag.past-tag      { --tag-fg: #cbd5e1; }
-    }
+    [data-theme="dark"] .tag.class-AAGeek  { --tag-fg: #5eead4; }
+    [data-theme="dark"] .tag.class-NETA65  { --tag-fg: #c4b5fd; }
+    [data-theme="dark"] .tag.class-AAWSNY  { --tag-fg: #fcd34d; }
+    [data-theme="dark"] .tag.cat           { --tag-fg: #a5b4fc; }
+    [data-theme="dark"] .tag.venue-Virtual { --tag-fg: #93c5fd; }
+    [data-theme="dark"] .tag.venue-Physical{ --tag-fg: #6ee7b7; }
+    [data-theme="dark"] .tag.venue-Hybrid  { --tag-fg: #f9a8d4; }
+    [data-theme="dark"] .tag.past-tag      { --tag-fg: #cbd5e1; }
 
     /* Icon actions (star / share) --------------------------------------- */
     /* Tags flow along the bottom of the card; the star/share pair pins to
@@ -953,10 +1068,8 @@
     .star-btn.on        { color: #d97706; }
     .star-btn.on:hover  { color: #b45309; }
     .star-btn.on svg    { fill: currentColor; }
-    @media (prefers-color-scheme: dark) {
-      .star-btn.on       { color: #fbbf24; }
-      .star-btn.on:hover { color: #fcd34d; }
-    }
+    [data-theme="dark"] .star-btn.on       { color: #fbbf24; }
+    [data-theme="dark"] .star-btn.on:hover { color: #fcd34d; }
 
     /* Dialog header actions: star, share and close in one cluster. */
     .dlg-actions {
@@ -1001,6 +1114,72 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast:empty { display: none; }
+
+    /* Installable app ---------------------------------------------------- */
+    .help-btn[hidden] { display: none; }
+    /* Install: icon-only on phones, icon + label once there is room. */
+    .install-btn { color: var(--brand); border-color: var(--brand-ring); }
+    .install-btn svg {
+      width: 1rem; height: 1rem; flex-shrink: 0;
+      fill: none; stroke: currentColor; stroke-width: 1.8;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .install-btn .install-label { display: none; }
+    @media (min-width: 640px) {
+      .help-btn.install-btn { width: auto; max-width: none; padding: 0 .7rem; gap: .35rem; font-size: .8rem; }
+      .install-btn .install-label { display: inline; }
+    }
+
+    .update-banner {
+      position: fixed;
+      left: 50%;
+      bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%);
+      z-index: 110;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      max-width: calc(100vw - 2rem);
+      padding: .5rem .5rem .5rem 1rem;
+      background: var(--text);
+      color: var(--surface);
+      border-radius: 999px;
+      box-shadow: var(--sh-4);
+      font-size: .82rem;
+      font-weight: 560;
+    }
+    .update-banner[hidden] { display: none; }
+    .update-banner button {
+      margin: 0;
+      width: auto;
+      padding: .3rem .85rem;
+      font-size: .8rem;
+      font-weight: 650;
+      border-radius: 999px;
+      border: 0;
+      background: var(--brand);
+      color: var(--on-brand);
+      cursor: pointer;
+    }
+    .update-banner .update-x {
+      padding: .1rem .5rem;
+      background: transparent;
+      color: inherit;
+      font-size: 1.1rem;
+      opacity: .7;
+    }
+
+    .app-status { margin: .15rem 0 .55rem; color: var(--text-2); font-size: .84rem; }
+    .settings-group .app-install { width: auto; margin: 0 0 .25rem; padding: .4rem .9rem; font-size: .82rem; }
+
+    /* Running as an installed app: the page draws under the iOS status bar
+       (black-translucent), so pad the sticky header by the safe area. */
+    /* (:root raises specificity so the later tablet / desktop header rules
+       can't undo it on an installed iPad.) */
+    @media (display-mode: standalone) {
+      :root .app-header { padding-top: calc(.7rem + env(safe-area-inset-top, 0px)); }
+      :root .app-footer { padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); }
+    }
 
     /* Empty state ------------------------------------------------------- */
     #events > p.muted {
@@ -1128,6 +1307,9 @@
 
     .cal-mode {
       display: inline-flex;
+      /* Pico gives [role=group] a bottom margin, which knocked this toggle
+         out of line with the prev / next / today buttons beside it. */
+      margin: 0;
       gap: 2px;
       padding: 3px;
       background: var(--surface-2);
@@ -1157,7 +1339,7 @@
 
     .cal-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       border: 1px solid var(--border);
       border-radius: var(--r-lg);
       overflow: hidden;
@@ -1239,6 +1421,11 @@
     .cal-bar.bar-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -1px; }
     .cal-bar.bar-end   { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
     .cal-bar.bar-cont  { font-style: italic; opacity: .85; }
+    /* Start time inside a bar — only shown once the cells are wide enough
+       (see DESKTOP below). */
+    .cal-bar .bar-time { display: none; font-weight: 700; margin-right: .3em; opacity: .8; }
+    /* The calendar shows past days too; fade them so today stands out. */
+    .cal-bar.past, .week-event.past { opacity: .62; }
     .cal-more {
       font-size: .62rem;
       color: var(--text-3);
@@ -1267,7 +1454,7 @@
     /* Week view --------------------------------------------------------- */
     .cal-week {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       border: 1px solid var(--border);
       border-radius: var(--r-lg);
       overflow: hidden;
@@ -1693,6 +1880,102 @@
     .settings-group input[type=checkbox], .settings-group input[type=radio] { margin: 0; }
     .notify-hint { margin: .5rem 0 0 0; font-size: .74rem; color: var(--text-3); }
 
+    /* Appearance controls: theme swatches and segmented radios. The radios
+       themselves are visually hidden; the label is the target, and :has()
+       mirrors checked / focus state onto it. */
+    .set-label {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      margin: .85rem 0 .4rem;
+    }
+    .settings-group > .set-label:first-of-type { margin-top: .25rem; }
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .45rem;
+    }
+    .settings-group .theme-opt,
+    .settings-group .seg label { position: relative; margin: 0; cursor: pointer; }
+    .theme-opt input,
+    .seg input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      pointer-events: none;
+    }
+    .settings-group .theme-opt {
+      width: auto;              /* Pico sizes radio labels to fit-content */
+      flex-direction: column;
+      align-items: stretch;
+      gap: .35rem;
+      padding: .4rem .4rem .35rem;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface);
+      font-size: .76rem;
+      font-weight: 560;
+      text-align: center;
+      transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    }
+    .theme-opt:hover { border-color: var(--border-strong); }
+    .settings-group .theme-opt:has(input:checked) {
+      border-color: var(--brand);
+      box-shadow: inset 0 0 0 1px var(--brand);
+      color: var(--text);
+    }
+    .theme-opt:has(input:focus-visible),
+    .seg label:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .sw {
+      position: relative;
+      display: block;
+      height: 2rem;
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      background: var(--a);
+      border: 1px solid rgba(127,127,127,.25);
+    }
+    .sw i:first-child {   /* a card */
+      position: absolute;
+      left: 16%; right: 16%; top: 30%; bottom: 0;
+      background: var(--b);
+      border-radius: 3px 3px 0 0;
+    }
+    .sw i:last-child {    /* the accent */
+      position: absolute;
+      left: 26%; width: 34%; top: 48%; height: 20%;
+      background: var(--c);
+      border-radius: 999px;
+    }
+    .sw-auto { background: linear-gradient(135deg, #f6f8fa 50%, #0b0e13 50%); }
+    .sw-auto i:first-child { background: linear-gradient(135deg, #ffffff 50%, #141a22 50%); }
+    .sw-auto i:last-child  { background: #14b8a6; }
+
+    .seg {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding: 3px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+    }
+    .settings-group .seg label {
+      padding: .28rem .85rem;
+      border-radius: calc(var(--r-sm) - 3px);
+      font-size: .8rem;
+      font-weight: 560;
+      color: var(--text-2);
+      transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    }
+    .settings-group .seg label:hover { color: var(--text); }
+    .settings-group .seg label:has(input:checked) { background: var(--brand); color: var(--on-brand); }
+    /* Long label: wrap the text beside the checkbox, not under it. */
+    .settings-group label.row.gpane-setting { margin-top: .85rem; flex-wrap: nowrap; align-items: flex-start; }
+    .settings-group .gpane-setting input { margin-top: .15rem; flex-shrink: 0; }
+
     /* Help dialog ------------------------------------------------------- */
     .help-table { width: 100%; font-size: .84rem; border-collapse: collapse; }
     .help-table td { padding: .4rem .25rem; vertical-align: top; color: var(--text-2); }
@@ -1744,7 +2027,7 @@
       .app-header, .filters, .view-toggle, .list-controls .pagesize-toggle,
       .list-controls .time-toggle, .pagination, dialog, .embed-wrap, .app-footer,
       #view-calendar, #view-embed, .filter-actions, .search-hint, #status,
-      .card-actions, .toast {
+      .card-actions, .toast, .update-banner, .install-btn {
         display: none !important;
       }
       body { background: white; color: black; }
@@ -1775,7 +2058,6 @@
       .app-header { padding: .75rem 1.5rem .7rem; }
       .app-logo { width: 2.25rem; height: 2.25rem; }
       .app-header .brand h1 { font-size: 1.15rem; }
-      .app-header .brand p  { display: block; }
 
       .container { padding: 1.5rem 1.5rem 0; }
 
@@ -1789,6 +2071,7 @@
         padding: .9rem 1.1rem 1.1rem;
       }
       .filter-search  { grid-column: 1 / -1; }
+      .filter-date    { grid-column: 1 / -1; }
       .filter-actions { grid-column: 1 / -1; }
       .filters-summary { padding: .75rem 1.1rem; }
 
@@ -1812,9 +2095,404 @@
         gap: 2rem;
         padding: .6rem 2rem;
       }
-      .app-header .brand p { margin-bottom: 0; }
       .view-toggle { width: 300px; margin-top: 0; }
       .embed-wrap  { padding-bottom: 60%; }
+    }
+
+    /* ------------------------------------------------------------------ *
+       CARD GRID — columns of event cards
+       Sized against the events column itself (a container query), not the
+       window, so "Auto" keeps working when the filter sidebar and Google
+       pane take their share. <html data-cols> carries the user's choice
+       (auto | 1–4; Settings → Appearance). Below 40rem — every phone —
+       it is always one column, whatever was picked.
+     * ------------------------------------------------------------------ */
+    .main-col { container: events / inline-size; }
+
+    @container events (min-width: 40rem) {
+      .events,
+      .cal-day-events {
+        display: grid;
+        grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+        gap: .75rem;
+        align-items: stretch;
+      }
+      /* Month headings, empty / error notes and the day title span the row. */
+      .events > :not(.event-card):not(.skeleton),
+      .cal-day-events > :not(.event-card) { grid-column: 1 / -1; }
+
+      /* Cards in one row share a height; keep the footer on the bottom edge.
+         (Pico's article margin also stacked on top of the grid gap.) */
+      .event-card { margin: 0; align-items: stretch; }
+      .date-block { align-self: start; }
+      .event-main { display: flex; flex-direction: column; }
+      .card-footer { margin-top: auto; }
+
+      :root[data-cols="2"] :is(.events, .cal-day-events) { --cols: 2; }
+      :root[data-cols="3"] :is(.events, .cal-day-events) { --cols: 3; }
+      :root[data-cols="4"] :is(.events, .cal-day-events) { --cols: 4; }
+    }
+    /* Auto: add a column whenever each card would still get ~21rem
+       (~17rem in compact mode). */
+    @container events (min-width: 42rem) {
+      :root[data-cols="auto"] :is(.events, .cal-day-events) { --cols: 2; }
+    }
+    @container events (min-width: 63rem) {
+      :root[data-cols="auto"] :is(.events, .cal-day-events) { --cols: 3; }
+    }
+    @container events (min-width: 84rem) {
+      :root[data-cols="auto"] :is(.events, .cal-day-events) { --cols: 4; }
+    }
+    @container events (min-width: 36rem) {
+      :root[data-cols="auto"][data-density="compact"] :is(.events, .cal-day-events) { --cols: 2; }
+    }
+    @container events (min-width: 54rem) {
+      :root[data-cols="auto"][data-density="compact"] :is(.events, .cal-day-events) { --cols: 3; }
+    }
+    @container events (min-width: 72rem) {
+      :root[data-cols="auto"][data-density="compact"] :is(.events, .cal-day-events) { --cols: 4; }
+    }
+
+    /* ------------------------------------------------------------------ *
+       COMPACT DENSITY (Settings → Appearance → Card size)
+       Same information minus the description preview, in roughly half
+       the height — for scanning a long list, or fitting 3–4 columns.
+     * ------------------------------------------------------------------ */
+    :root[data-density="compact"] .events { gap: .4rem; }
+    :root[data-density="compact"] .event-card {
+      grid-template-columns: 2.55rem minmax(0, 1fr);
+      gap: .7rem;
+      padding: .5rem .65rem .5rem .8rem;
+      border-radius: var(--r-md);
+    }
+    :root[data-density="compact"] .date-block { padding: .18rem .1rem .22rem; border-radius: var(--r-sm); }
+    :root[data-density="compact"] .date-block .day   { font-size: 1.12rem; }
+    :root[data-density="compact"] .date-block .month,
+    :root[data-density="compact"] .date-block .wday  { font-size: .54rem; }
+    :root[data-density="compact"] .title-row  { margin-bottom: .12rem; gap: .35rem; }
+    :root[data-density="compact"] .event-main h3 { font-size: .875rem; line-height: 1.3; }
+    :root[data-density="compact"] .rel { font-size: .6rem; padding: .08rem .38rem; }
+    :root[data-density="compact"] .event-meta { font-size: .72rem; margin-bottom: .28rem; gap: .05rem .6rem; }
+    :root[data-density="compact"] .event-meta .meta-loc { flex: 0 1 auto; }
+    :root[data-density="compact"] .event-preview { display: none; }
+    :root[data-density="compact"] .tag { font-size: .6rem; padding: .04rem .4rem; }
+    :root[data-density="compact"] .icon-btn { width: 1.6rem; height: 1.6rem; min-width: 1.6rem; max-width: 1.6rem; }
+    :root[data-density="compact"] .icon-btn svg { width: .95rem; height: .95rem; }
+    :root[data-density="compact"] .month-heading { margin: 1rem 0 .4rem; }
+    :root[data-density="compact"] .cal-day-events { gap: .4rem; }
+
+    /* Narrow cards (3–4 columns): give the title the full row and drop the
+       recurring / "Today" badges beneath it, instead of squeezing the title
+       into a word-per-line column beside them. */
+    .event-main { container: card / inline-size; }
+    .event-main h3 { overflow-wrap: anywhere; }
+    @container card (max-width: 15rem) {
+      .title-row h3 { flex-basis: 100%; }
+      .card-footer { flex-wrap: wrap; }
+    }
+
+    /* Google pane chrome — only shown when the embed is the side pane. */
+    .gpane-bar { display: none; }
+
+    /* ------------------------------------------------------------------ *
+       DESKTOP (≥1024px)
+       Phones get one column with a collapsible filter panel. On a desktop
+       that left a narrow strip of cards in empty margins with the filters
+       hidden. Here the page spans the full window, filters become an
+       always-open sticky sidebar, and the views use the room: card columns,
+       taller month cells with start times, a full-height embed.
+       The phone layout above is untouched — everything is scoped here.
+     * ------------------------------------------------------------------ */
+    @media (min-width: 1024px) {
+      :root {
+        --page-pad:   1.5rem;
+        --sidebar-w:  16.5rem;
+        /* --header-h is measured and set by JS (syncHeaderHeight). */
+      }
+
+      .app-header { padding: .7rem var(--page-pad); }
+      .app-logo { width: 2.4rem; height: 2.4rem; }
+      .app-header .brand h1 { font-size: 1.2rem; }
+      .brand-actions { gap: .4rem; }
+      .view-toggle { width: 320px; }
+      .tab { padding: .5rem .75rem; font-size: .86rem; }
+
+      /* Use the whole window — Pico and the base rule both cap .container. */
+      .container {
+        max-width: none;
+        padding: 1.25rem var(--page-pad) 0;
+        display: grid;
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+        column-gap: 1.5rem;
+        align-items: start;
+      }
+      .main-col { min-width: 0; }
+
+      /* Filter sidebar ---------------------------------------------------- */
+      .container > .filters {
+        position: sticky;
+        top: calc(var(--header-h) + 1.25rem);
+        max-height: calc(100vh - var(--header-h) - 2.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        margin: 0;
+      }
+      /* Always open here (JS keeps [open] set) — the summary is just a
+         heading, so drop the disclosure affordances. */
+      .filters-summary { cursor: default; padding: .85rem 1.1rem; }
+      .filters-summary:hover { background: transparent; }
+      .filters-chevron { display: none; }
+      .filters-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+        padding: 1rem 1.1rem 1.15rem;
+      }
+      .filter-search  { order: -1; }
+      .filter-actions { padding-top: .25rem; }
+      .filter-actions button { flex: 1 1 0; }
+      .chip { padding: .3rem .65rem; }
+
+      /* "Show" group: the list toolbar's toggles, moved in by JS. Sits right
+         under search. Upcoming-only and page size only affect the list, so
+         they step aside while the calendar is showing. */
+      .filter-show { order: -1; }
+      /* The sidebar is too narrow for two date fields side by side — the
+         year gets clipped — so stack From over To. */
+      .filters .date-range { grid-template-columns: minmax(0, 1fr); }
+      .filter-show .time-toggle,
+      .filter-show .pagesize-toggle { font-size: .82rem; color: var(--text); gap: .5rem; }
+      .filter-show .pagesize-toggle { justify-content: space-between; }
+      .filter-show .pagesize-toggle select { min-width: 4.5rem; }
+      body[data-view="calendar"] .filter-show #opt-upcoming,
+      body[data-view="calendar"] .filter-show #opt-pagesize { display: none; }
+
+      /* Header context --------------------------------------------------- *
+         brand | month + count | view tabs. Three columns with equal outer
+         tracks keep the middle block truly centred on the page. */
+      .app-header { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 1.5rem; }
+      .app-header > .brand        { grid-column: 1; }
+      .app-header > .header-tools { grid-column: 3; justify-self: end; }   /* stays right even when the context is hidden */
+      .header-context             { grid-column: 2; }
+      .header-tools { display: flex; align-items: center; gap: .75rem; }
+      .header-context {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .1rem;
+        min-width: 0;
+        text-align: center;
+        line-height: 1.2;
+      }
+      .header-context[hidden] { display: none; }
+      .hc-month {
+        font-size: 1.15rem;
+        font-weight: 680;
+        letter-spacing: -.015em;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .hc-month:empty { display: none; }
+      .hc-count {
+        font-size: .76rem;
+        color: var(--text-3);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      /* List view --------------------------------------------------------- */
+      /* Month and count live in the header now, so the toolbar row (only the
+         count was left in it) and the first month heading give their space
+         back to the cards. Later headings stay as in-list dividers — static,
+         since the header already tracks the month while scrolling. */
+      .list-controls { display: none; }
+      .events > .month-heading:first-child { display: none; }
+      .month-heading { position: static; background: none; }
+      .month-heading { margin: 1.25rem 0 .5rem; }
+
+      /* Calendar view ----------------------------------------------------- */
+      /* Google-Calendar-style toolbar: nav on the left, title next to it,
+         mode switch on the right. */
+      .cal-header {
+        grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+        grid-template-areas: "prev next today title mode";
+        gap: .5rem;
+        margin-bottom: 1rem;
+      }
+      .cal-header h2 {
+        grid-area: title;
+        text-align: left;
+        font-size: 1.35rem;
+        margin-left: .6rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #cal-prev  { grid-area: prev;  }
+      #cal-next  { grid-area: next;  }
+      #cal-today { grid-area: today; }
+      .cal-mode  { grid-area: mode;  }
+
+      .cal-grid .dow { padding: .55rem .3rem; font-size: .66rem; }
+      .cal-cell {
+        min-height: 7.75rem;
+        padding: .4rem .45rem .45rem;
+        gap: .25rem;
+      }
+      :root[data-density="compact"] .cal-cell { min-height: 6.25rem; }
+      .cal-cell .num { font-size: .8rem; }
+      .cal-cell.today .num { width: 1.6rem; height: 1.6rem; }
+      .cal-bars { gap: 3px; }
+      .cal-bar {
+        font-size: .7rem;
+        line-height: 1.35;
+        padding: 2px 6px;
+      }
+      .cal-bar .bar-time { display: inline; }
+      .cal-more { font-size: .68rem; padding: 1px 3px; }
+      .cal-more:hover { color: var(--brand); }
+      .cal-count-badge { top: 6px; right: 6px; }
+
+      .cal-week { min-height: 30rem; }
+      .week-cell { min-height: 30rem; padding: .6rem .5rem; gap: .4rem; }
+      .week-day-label { font-size: .7rem; padding: .15rem .4rem; }
+      .week-event { font-size: .76rem; padding: 6px 8px; }
+      .week-event .we-time { font-size: .68rem; margin-bottom: 1px; }
+
+      .cal-day-events { margin-top: 1.5rem; }
+      .cal-day-events h3 { font-size: .95rem; }
+
+      /* Google tab (full view): our filters don't reach inside Google's
+         iframe, so the sidebar would only mislead — drop it and give the
+         embed the whole width and the viewport's height. */
+      body[data-view="embed"] .container { grid-template-columns: minmax(0, 1fr); }
+      body[data-view="embed"] .container > .filters { display: none; }
+      .embed-wrap {
+        padding-bottom: 0;
+        height: calc(100vh - var(--header-h) - 4rem);
+        min-height: 36rem;
+      }
+
+      /* Dialogs get a little more room for long descriptions and flyers. */
+      .event-dialog article { width: min(92vw, 720px); max-width: 720px; }
+    }
+
+    /* ------------------------------------------------------------------ *
+       THREE PANES (≥1280px, "Google pane" on in Settings)
+       filters | events | Google Calendar. The pane is the same #view-embed
+       section as the Google tab — one iframe, never loaded twice — pinned
+       as a sticky third column. Collapsed it shrinks to a slim rail so the
+       events get the width back; G or the rail button re-opens it.
+     * ------------------------------------------------------------------ */
+    @media (min-width: 1280px) {
+      :root {
+        --gpane-w:      clamp(20rem, 24vw, 34rem);
+        --gpane-rail-w: 2.75rem;
+      }
+
+      body.gpane:not([data-view="embed"]) .container {
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--gpane-w);
+      }
+      body.gpane.gpane-collapsed:not([data-view="embed"]) .container {
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--gpane-rail-w);
+      }
+
+      /* Always visible in pane mode, whichever centre view is active. */
+      body.gpane:not([data-view="embed"]) #view-embed.hidden { display: flex !important; }
+      body.gpane:not([data-view="embed"]) #view-embed {
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: calc(var(--header-h) + 1.25rem);
+        height: calc(100vh - var(--header-h) - 2.5rem);
+        min-height: 24rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh-1);
+        overflow: hidden;
+      }
+      body.gpane:not([data-view="embed"]) .gpane-bar {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+        flex: 0 0 auto;
+        padding: .5rem .5rem .5rem .9rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .gpane-title {
+        margin-right: auto;
+        font-size: .84rem;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .gpane-btn {
+        width: 1.9rem;
+        height: 1.9rem;
+        min-width: 1.9rem;
+        max-width: 1.9rem;
+        padding: 0;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-2);
+        cursor: pointer;
+        box-shadow: none;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: background var(--dur) var(--ease),
+                    color var(--dur) var(--ease),
+                    border-color var(--dur) var(--ease);
+      }
+      .gpane-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+      .gpane-btn svg {
+        width: 1rem; height: 1rem;
+        fill: none; stroke: currentColor; stroke-width: 1.8;
+        stroke-linecap: round; stroke-linejoin: round;
+        transition: transform var(--dur) var(--ease);
+      }
+      body.gpane:not([data-view="embed"]) #view-embed .embed-wrap {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      body.gpane:not([data-view="embed"]) #view-embed iframe { border: 0; border-radius: 0; }
+
+      /* Collapsed: a vertical rail — expand button on top, label below. */
+      body.gpane-collapsed:not([data-view="embed"]) .gpane-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: .6rem;
+        padding: .5rem 0;
+        border-bottom: 0;
+        height: 100%;
+        cursor: pointer;
+      }
+      body.gpane-collapsed:not([data-view="embed"]) .gpane-bar #gpane-toggle { order: -1; }
+      body.gpane-collapsed:not([data-view="embed"]) #gpane-toggle svg { transform: rotate(180deg); }
+      body.gpane-collapsed:not([data-view="embed"]) #gpane-open { display: none; }
+      body.gpane-collapsed:not([data-view="embed"]) .gpane-title {
+        writing-mode: vertical-rl;
+        margin: 0;
+        font-size: .78rem;
+        color: var(--text-2);
+        letter-spacing: .02em;
+      }
+      body.gpane-collapsed:not([data-view="embed"]) #view-embed .embed-wrap { display: none; }
+
+      /* With the pane open the month grid gets narrower; trim the bars. */
+      body.gpane:not(.gpane-collapsed):not([data-view="embed"]) .cal-bar { font-size: .66rem; padding: 1px 5px; }
     }
   </style>
 </head>
@@ -1853,17 +2531,33 @@
           <h1>AAGeek Events</h1>
         </div>
         <div class="brand-actions">
+          <!-- Shown only when the browser offers installation (beforeinstallprompt). -->
+          <button id="install-btn" type="button" class="help-btn install-btn" hidden
+                  aria-label="Install app" title="Install AAGeek Events as an app">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9M6.5 8.5 10 12l3.5-3.5M4 14.5v1a1.5 1.5 0 0 0 1.5 1.5h9a1.5 1.5 0 0 0 1.5-1.5v-1"/></svg>
+            <span class="install-label">Install</span>
+          </button>
           <button id="settings-btn" type="button" class="help-btn" aria-label="Settings" title="Settings">⚙</button>
           <button id="help-btn" type="button" class="help-btn" aria-label="Keyboard shortcuts (press ?)" title="Keyboard shortcuts (?)">?</button>
         </div>
       </div>
-      <p class="muted">Study · Seminar · Speaker · Series · Story · Service · Session</p>
     </div>
+    <!-- Desktop list view: the month at the top of the viewport and the
+         result count, in place of a toolbar row above the cards. -->
+    <div class="header-context" id="header-context" aria-live="polite" hidden>
+      <span class="hc-month" id="hc-month"></span>
+      <span class="hc-count" id="hc-count"></span>
+    </div>
+    <!-- Right-hand cluster. On desktop JS moves the settings / help buttons in
+         here beside the tabs (placeHeaderActions); on phones they stay in the
+         brand row's top-right corner. -->
+    <div class="header-tools" id="header-tools">
     <nav class="view-toggle" role="tablist" aria-label="View">
       <button type="button" class="tab active" data-view="list" role="tab" aria-selected="true" title="List view (1)">List</button>
       <button type="button" class="tab" data-view="calendar" role="tab" aria-selected="false" title="Calendar view (2)">Calendar</button>
       <button type="button" class="tab" data-view="embed" role="tab" aria-selected="false" title="Google embed (3)">Google</button>
     </nav>
+    </div>
   </header>
 
   <main class="container">
@@ -1924,11 +2618,53 @@
           <button type="button" class="chip" data-value="6">Sat</button>
         </div>
       </div>
+      <div class="filter-group filter-date">
+        <span class="filter-label">Date</span>
+        <div class="chips" data-filter="when" role="group" aria-label="Date range">
+          <button type="button" class="chip active" data-value="all">Any</button>
+          <button type="button" class="chip" data-value="today">Today</button>
+          <button type="button" class="chip" data-value="tomorrow">Tomorrow</button>
+          <button type="button" class="chip" data-value="weekend">This weekend</button>
+          <button type="button" class="chip" data-value="week">This week</button>
+          <button type="button" class="chip" data-value="next7">Next 7 days</button>
+          <button type="button" class="chip" data-value="month">This month</button>
+          <button type="button" class="chip" data-value="nextmonth">Next month</button>
+          <button type="button" class="chip" data-value="custom">Custom…</button>
+        </div>
+        <div class="date-range" id="date-range" hidden>
+          <label><span>From</span><input type="date" id="date-from" /></label>
+          <label><span>To</span><input type="date" id="date-to" /></label>
+        </div>
+        <div class="date-parts">
+          <label><span>Year</span>
+            <select id="f-year" aria-label="Year"><option value="all">Any</option></select>
+          </label>
+          <label><span>Month</span>
+            <select id="f-month" aria-label="Month">
+              <option value="all">Any</option>
+              <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+              <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+              <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+              <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+            </select>
+          </label>
+          <label><span>Day</span>
+            <select id="f-mday" aria-label="Day of month"><option value="all">Any</option></select>
+          </label>
+        </div>
+      </div>
       <div class="filter-group filter-search">
         <label class="filter-label" for="search">
           Search <span class="search-hint">press <kbd>/</kbd> to focus</span>
         </label>
         <input id="search" type="search" placeholder="Search title, location, description…" autocomplete="off" />
+      </div>
+      <!-- Desktop only: the list toolbar's Upcoming / Starred / Per page
+           controls are moved in here by JS (placeListOptions). Phones keep
+           them in the toolbar, outside the collapsed Filters panel. -->
+      <div class="filter-group filter-show" id="show-group" hidden>
+        <span class="filter-label">Show</span>
+        <div class="show-opts" id="show-slot"></div>
       </div>
       <div class="filter-actions">
         <button id="reset-filters" class="secondary" type="button">Reset filters</button>
@@ -1937,20 +2673,24 @@
       </div>
     </details>
 
+    <!-- Everything right of the filter sidebar on desktop. A plain block on
+         phones; on wide screens it becomes the second grid column. -->
+    <div class="main-col">
+
     <div id="status" class="status" aria-live="polite"></div>
 
     <!-- LIST VIEW -->
     <section id="view-list" class="view" aria-label="Event list">
       <div class="list-controls">
-        <label class="time-toggle">
+        <label class="time-toggle" id="opt-upcoming">
           <input type="checkbox" id="upcoming-only" checked />
           <span>Upcoming only</span>
         </label>
-        <label class="time-toggle">
+        <label class="time-toggle" id="opt-starred">
           <input type="checkbox" id="starred-only" />
           <span>Starred only</span>
         </label>
-        <label class="pagesize-toggle">
+        <label class="pagesize-toggle" id="opt-pagesize">
           <span>Per page</span>
           <select id="page-size" aria-label="Events per page">
             <option value="10">10</option>
@@ -1984,8 +2724,22 @@
       <div id="cal-day-events" class="cal-day-events"></div>
     </section>
 
-    <!-- EMBED VIEW -->
+    </div><!-- /.main-col -->
+
+    <!-- EMBED VIEW — the "Google" tab on phones; on wide desktops it is also
+         the right-hand pane beside the events, and can be collapsed. -->
     <section id="view-embed" class="view hidden" aria-label="Google Calendar embed">
+      <div class="gpane-bar">
+        <span class="gpane-title">Google Calendar</span>
+        <a class="gpane-btn" id="gpane-open" target="_blank" rel="noopener"
+           title="Open in Google Calendar" aria-label="Open in Google Calendar">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7M14 12v3.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5H8"/></svg>
+        </a>
+        <button type="button" class="gpane-btn" id="gpane-toggle" aria-expanded="true"
+                aria-controls="view-embed" title="Collapse Google Calendar (G)">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 5l5 5-5 5"/></svg>
+        </button>
+      </div>
       <div class="embed-wrap">
         <iframe id="gcal-iframe"
           src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FChicago&src=ZWMwYzgzYTZhZDAyYjIzOTkyN2QzYzE1NmJmZjI4Mjk5MzVjM2U5MWM0YzgyYmFmZjcxMTk5MjdjY2Y0Y2Q5ZEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&color=%23795548"
@@ -2005,6 +2759,53 @@
         <h3 id="settings-title">Settings</h3>
       </header>
       <div class="settings-body">
+        <fieldset class="settings-group">
+          <legend>Appearance</legend>
+
+          <div class="set-label" id="theme-label">Theme</div>
+          <div class="theme-grid" role="radiogroup" aria-labelledby="theme-label">
+            <label class="theme-opt"><input type="radio" name="theme" value="auto" />
+              <span class="sw sw-auto" aria-hidden="true"><i></i><i></i></span><span>Auto</span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="light" />
+              <span class="sw" style="--a:#f6f8fa;--b:#ffffff;--c:#0d9488" aria-hidden="true"><i></i><i></i></span><span>Light</span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="dark" />
+              <span class="sw" style="--a:#0b0e13;--b:#141a22;--c:#2dd4bf" aria-hidden="true"><i></i><i></i></span><span>Dark</span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="ocean" />
+              <span class="sw" style="--a:#07111f;--b:#0d1a2c;--c:#38bdf8" aria-hidden="true"><i></i><i></i></span><span>Ocean</span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="sepia" />
+              <span class="sw" style="--a:#f3ebdd;--b:#fbf6ec;--c:#b45309" aria-hidden="true"><i></i><i></i></span><span>Sepia</span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="lavender" />
+              <span class="sw" style="--a:#f5f3fb;--b:#ffffff;--c:#7c3aed" aria-hidden="true"><i></i><i></i></span><span>Lavender</span></label>
+          </div>
+
+          <div class="set-label" id="density-label">Card size</div>
+          <div class="seg" role="radiogroup" aria-labelledby="density-label">
+            <label><input type="radio" name="density" value="standard" /><span>Standard</span></label>
+            <label><input type="radio" name="density" value="compact" /><span>Compact</span></label>
+          </div>
+
+          <div class="set-label" id="columns-label">Event columns</div>
+          <div class="seg" role="radiogroup" aria-labelledby="columns-label">
+            <label><input type="radio" name="columns" value="0" /><span>Auto</span></label>
+            <label><input type="radio" name="columns" value="1" /><span>1</span></label>
+            <label><input type="radio" name="columns" value="2" /><span>2</span></label>
+            <label><input type="radio" name="columns" value="3" /><span>3</span></label>
+            <label><input type="radio" name="columns" value="4" /><span>4</span></label>
+          </div>
+          <p class="muted notify-hint">Auto fits as many as the space allows. Phones always show one column.</p>
+
+          <label class="row gpane-setting">
+            <input type="checkbox" id="gpane-enabled" />
+            <span>Show Google Calendar pane beside events <span class="muted">(wide screens · <kbd>G</kbd>)</span></span>
+          </label>
+        </fieldset>
+        <fieldset class="settings-group" id="app-settings">
+          <legend>App</legend>
+          <p class="app-status" id="app-status">Checking…</p>
+          <button type="button" id="install-btn-2" class="outline app-install" hidden>Install AAGeek Events</button>
+          <p class="muted notify-hint">Installed, it opens in its own window, gets a home-screen / taskbar
+            icon, and works offline with the events it last downloaded.</p>
+        </fieldset>
         <fieldset class="settings-group">
           <legend>Time zone</legend>
           <label class="row">
@@ -2100,6 +2901,7 @@
           <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next month (Calendar view)</td></tr>
           <tr><td><kbd>T</kbd></td><td>Jump to today (Calendar view)</td></tr>
           <tr><td><kbd>W</kbd></td><td>Toggle Month / Week (Calendar view)</td></tr>
+          <tr><td><kbd>G</kbd></td><td>Expand / collapse the Google Calendar pane (wide screens)</td></tr>
           <tr><td><kbd>R</kbd></td><td>Reset filters</td></tr>
           <tr><td><kbd>U</kbd></td><td>Toggle "Upcoming only"</td></tr>
           <tr><td><kbd>P</kbd></td><td>Print the filtered list</td></tr>
@@ -2148,7 +2950,7 @@
       Calendar data &copy; Google ·
       Built with <a href="https://picocss.com" target="_blank" rel="noopener">Pico.css</a> &amp;
       <a href="https://github.com/kewisch/ical.js" target="_blank" rel="noopener">ical.js</a> ·
-      Single-file SPA · No server required.
+      Installable · works offline · no server required.
     </small>
   </footer>
 
@@ -2165,6 +2967,13 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- A new version of the app has been downloaded by the service worker. -->
+  <div id="update-banner" class="update-banner" role="status" hidden>
+    <span>A new version is available.</span>
+    <button type="button" id="update-reload">Reload</button>
+    <button type="button" id="update-dismiss" class="update-x" aria-label="Dismiss">&times;</button>
+  </div>
 
   <!-- ical.js (MPL 2.0) for robust ICS parsing incl. recurring events -->
   <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
@@ -2234,19 +3043,33 @@
       const DEFAULT_PREFS = {
         view: 'list',
         calMode: 'month',                 // 'month' | 'week'
-        pageSize: 20,                     // 10|20|30|50|100|0 (all)
+        pageSize: 20,                     // one of PAGE_SIZES_FOR(cols), or 0 (all)
         page: 1,
         timeZone: LOCAL_TZ,               // default: user's own TZ
         tzExplicit: false,                // becomes true only after user picks in Settings
         notify: { enabled: false, leadMinutes: 15 },
+        // Appearance (Settings → Appearance). The <head> pre-paint script
+        // reads theme and density straight from storage too — keep in step.
+        theme: 'auto',                    // auto | light | dark | ocean | sepia | lavender
+        density: 'standard',              // standard | compact
+        columns: 0,                       // 0 = auto, else 1–4 card columns
+        gpane: true,                      // Google Calendar side pane on wide screens
+        gpaneCollapsed: false,
         filters: {
           class: 'all', category: 'all', venue: 'all', dow: 'all',
           search: '', upcomingOnly: true, starredOnly: false,
+          // Date section: a preset window (or 'custom' + from/to), and
+          // optional year / month / day-of-month parts. All AND together.
+          when: 'all', from: '', to: '',
+          year: 'all', month: 'all', mday: 'all',
         },
       };
 
       // Reactive accessor — most code reads via these so a TZ change is live.
       function TZ() { return state.prefs.timeZone || DEFAULT_TZ; }
+
+      // Date-section presets (the "when" chips).
+      const WHEN_VALUES = ['all', 'today', 'tomorrow', 'weekend', 'week', 'next7', 'month', 'nextmonth', 'custom'];
 
       const KNOWN = {
         class:    ['AAGeek', 'NETA65', 'AAWSNY'],
@@ -2264,9 +3087,32 @@
       ]);
 
       // ----------------------------- State ------------------------------
+      // Matches the DESKTOP breakpoint in the stylesheet: always-open filter
+      // sidebar and roomier calendar cells.
+      const DESKTOP_MQ = window.matchMedia('(min-width: 1024px)');
+      // Matches THREE PANES: room for the Google Calendar side pane.
+      const PANE_MQ    = window.matchMedia('(min-width: 1280px)');
+      const DARK_MQ    = window.matchMedia('(prefers-color-scheme: dark)');
+
+      // theme → base mode. Palette themes layer colours over that base (see
+      // "Themes" in the stylesheet); 'auto' follows the device.
+      const THEMES = {
+        auto: null, light: 'light', dark: 'dark',
+        ocean: 'dark', sepia: 'light', lavender: 'light',
+      };
+
+      // "Per page" choices are whole rows of cards, so a page never ends on a
+      // ragged half-row. 1–2 columns keep the familiar round numbers; for 3–4
+      // the set is built on 12, which both divide evenly.
+      function PAGE_SIZES_FOR(cols) {
+        return cols >= 3 ? [12, 24, 36, 48, 96] : [10, 20, 30, 50, 100];
+      }
+      const ALL_PAGE_SIZES = [10, 12, 20, 24, 30, 36, 48, 50, 96, 100, 0];
+
       const state = {
         events: [],
         filtered: [],
+        calFiltered: [],           // same filters minus "upcoming only" — see applyFilters
         paged: [],
         prefs: JSON.parse(JSON.stringify(DEFAULT_PREFS)),
         calRef: firstOfMonth(new Date()),
@@ -2286,7 +3132,17 @@
         try {
           const raw = localStorage.getItem(STARS_KEY);
           const arr = raw ? JSON.parse(raw) : [];
-          state.stars = new Set(Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : []);
+          // Star ids end in "@<ISO start>". Occurrences more than a year gone
+          // have also left the feed's window, so their stars can never be
+          // shown again — prune them rather than let storage grow forever.
+          const cutoff = Date.now() - 400 * 24 * 3600 * 1000;
+          const live = (x) => {
+            const t = Date.parse(x.slice(x.lastIndexOf('@') + 1));
+            return isNaN(t) || t >= cutoff;
+          };
+          const list = Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : [];
+          state.stars = new Set(list.filter(live));
+          if (state.stars.size !== list.length) saveStars();
         } catch { state.stars = new Set(); }
       }
       function saveStars() {
@@ -2313,7 +3169,7 @@
           // Whitelist-merge so a partial / older payload upgrades cleanly.
           if (['list','calendar','embed'].includes(saved.view)) state.prefs.view = saved.view;
           if (['month','week'].includes(saved.calMode))         state.prefs.calMode = saved.calMode;
-          if ([10,20,30,50,100,0].includes(saved.pageSize))     state.prefs.pageSize = saved.pageSize;
+          if (ALL_PAGE_SIZES.includes(saved.pageSize))          state.prefs.pageSize = saved.pageSize;
           if (typeof saved.page === 'number' && saved.page > 0) state.prefs.page = saved.page;
           // Only honour a saved TZ if the user picked it themselves —
           // otherwise stay on the freshly detected LOCAL_TZ default.
@@ -2325,6 +3181,11 @@
             if (typeof saved.notify.enabled === 'boolean') state.prefs.notify.enabled = saved.notify.enabled;
             if ([5,15,30,60,1440].includes(saved.notify.leadMinutes)) state.prefs.notify.leadMinutes = saved.notify.leadMinutes;
           }
+          if (Object.prototype.hasOwnProperty.call(THEMES, saved.theme)) state.prefs.theme = saved.theme;
+          if (['standard','compact'].includes(saved.density))  state.prefs.density = saved.density;
+          if ([0,1,2,3,4].includes(saved.columns))              state.prefs.columns = saved.columns;
+          if (typeof saved.gpane === 'boolean')                 state.prefs.gpane = saved.gpane;
+          if (typeof saved.gpaneCollapsed === 'boolean')        state.prefs.gpaneCollapsed = saved.gpaneCollapsed;
           const sf = saved.filters || {};
           if (KNOWN.class   .concat('all').includes(sf.class))    state.prefs.filters.class    = sf.class;
           if (KNOWN.category.concat('all').includes(sf.category)) state.prefs.filters.category = sf.category;
@@ -2333,6 +3194,15 @@
           if (typeof sf.search === 'string')                      state.prefs.filters.search = sf.search;
           if (typeof sf.upcomingOnly === 'boolean')               state.prefs.filters.upcomingOnly = sf.upcomingOnly;
           if (typeof sf.starredOnly === 'boolean')                state.prefs.filters.starredOnly  = sf.starredOnly;
+          const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+          if (WHEN_VALUES.includes(sf.when))                      state.prefs.filters.when  = sf.when;
+          if (typeof sf.from === 'string' && ISO_DATE.test(sf.from)) state.prefs.filters.from = sf.from;
+          if (typeof sf.to   === 'string' && ISO_DATE.test(sf.to))   state.prefs.filters.to   = sf.to;
+          if (sf.year === 'all' || /^\d{4}$/.test(sf.year))       state.prefs.filters.year  = sf.year;
+          if (sf.month === 'all' || (+sf.month >= 1 && +sf.month <= 12 && String(+sf.month) === sf.month))
+            state.prefs.filters.month = sf.month;
+          if (sf.mday === 'all' || (+sf.mday >= 1 && +sf.mday <= 31 && String(+sf.mday) === sf.mday))
+            state.prefs.filters.mday = sf.mday;
         } catch { /* ignore */ }
       }
       function syncFiltersUI() {
@@ -2341,11 +3211,53 @@
           const val = state.prefs.filters[kind];
           group.querySelectorAll('.chip').forEach(b =>
             b.classList.toggle('active', b.dataset.value === val));
+          // Phone chip rails scroll sideways; bring a restored selection
+          // (e.g. "Custom…" at the far end) into view.
+          const act = group.querySelector('.chip.active');
+          if (act && group.scrollWidth > group.clientWidth) group.scrollLeft = Math.max(0, act.offsetLeft - 8);
         });
         $('#search').value = state.prefs.filters.search || '';
         $('#upcoming-only').checked = !!state.prefs.filters.upcomingOnly;
         $('#starred-only').checked  = !!state.prefs.filters.starredOnly;
         const ps = $('#page-size'); if (ps) ps.value = String(state.prefs.pageSize);
+        buildYearOptions();   // a saved year must exist as an option first
+        syncDateUI();
+      }
+
+      // Year choices come from the data (plus a saved year, so a stored
+      // filter still shows before the feed arrives). Rebuilt only when the
+      // set of years changes.
+      let _yearSig = '';
+      function buildYearOptions() {
+        const sel = $('#f-year');
+        if (!sel) return;
+        const years = new Set();
+        for (const ev of state.events) years.add(dayKeysOf(ev).startKey.slice(0, 4));
+        const saved = state.prefs.filters.year;
+        if (saved !== 'all') years.add(saved);
+        const list = Array.from(years).sort();
+        const sig = list.join(',');
+        if (sig === _yearSig) return;
+        _yearSig = sig;
+        sel.replaceChildren(el('option', { value: 'all' }, 'Any'),
+          ...list.map(y => el('option', { value: y }, y)));
+        sel.value = saved;
+      }
+
+      // Reflect the date filter in its controls: values, the Custom range's
+      // visibility, and an outline on any control that is narrowing results.
+      function syncDateUI() {
+        const f = state.prefs.filters;
+        const range = $('#date-range');
+        if (range) range.hidden = f.when !== 'custom';
+        const pairs = [['#date-from', f.from, ''], ['#date-to', f.to, ''],
+                       ['#f-year', f.year, 'all'], ['#f-month', f.month, 'all'], ['#f-mday', f.mday, 'all']];
+        for (const [sel, val, none] of pairs) {
+          const c = $(sel);
+          if (!c) continue;
+          if (c.value !== val) c.value = val;
+          c.classList.toggle('set', val !== none);
+        }
       }
 
       // ----------------------------- Utils ------------------------------
@@ -2377,9 +3289,19 @@
       // literal calendar date, independent of the chosen display zone. Format
       // them in the device's own zone (where ical.js anchored their midnight)
       // so switching the display TZ never drifts them to the previous/next day.
+      // Formatters are costly to build and fmt() runs thousands of times per
+      // render, so they are cached by zone + options. The set of distinct
+      // option literals in this file is small, so the cache stays bounded.
+      const _fmtCache = new Map();
       function fmt(date, opts, allDay) {
-        return new Intl.DateTimeFormat('en-US',
-          Object.assign({ timeZone: allDay ? LOCAL_TZ : TZ() }, opts)).format(date);
+        const tz = allDay ? LOCAL_TZ : TZ();
+        const key = tz + '|' + JSON.stringify(opts);
+        let f = _fmtCache.get(key);
+        if (!f) {
+          f = new Intl.DateTimeFormat('en-US', Object.assign({ timeZone: tz }, opts));
+          _fmtCache.set(key, f);
+        }
+        return f.format(date);
       }
 
       function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
@@ -2398,6 +3320,35 @@
         return f.format(d);
       }
       function isSameDay(a, b) { return dayKey(a) === dayKey(b); }
+
+      // YYYY-MM-DD from a Date's *device-local* fields. The calendar grid is
+      // built from local-midnight Dates that stand for calendar dates, not
+      // instants; keying them with dayKey() in a display zone west of the
+      // device would land them on the previous day.
+      function localKey(d) {
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+      }
+      // Today's date in the display zone, as a local-midnight Date for the grid.
+      function todayInTz() {
+        const [y, m, d] = dayKey(new Date()).split('-').map(Number);
+        return new Date(y, m - 1, d);
+      }
+
+      // First and last calendar day an event covers, as day keys. Timed events
+      // use the display zone; all-day events keep their literal date (see fmt).
+      function eventDayKeys(ev) {
+        const key = ev.isAllDay ? localKey : dayKey;
+        const startKey = key(ev.start);
+        let   endKey   = key(ev.end);
+        // All-day events end at the following midnight (exclusive); back off one day.
+        if (ev.isAllDay && ev.end > ev.start &&
+            ev.end.getHours() === 0 && ev.end.getMinutes() === 0) {
+          endKey = key(new Date(ev.end.getTime() - 1));
+        }
+        return { startKey, endKey };
+      }
 
       // Day-of-week 0..6 (Sun..Sat) in the active timezone.
       const _dowCache = new Map();
@@ -2452,11 +3403,16 @@
         const cached = readCache();
         const hadEventsBefore = state.events.length > 0;
 
-        if (cached) {
+        // Paint from the cache only on first load. Once events are on screen
+        // a refresh (manual or the 10-minute auto one) must not re-parse the
+        // whole cached feed just to replace it moments later.
+        if (cached && !hadEventsBefore) {
           try {
             processIcs(sanitizeIcs(cached.text));
             setStatus(`Cached (${timeAgo(cached.ts)}) · refreshing…`, { loading: true });
           } catch (e) { console.warn('Cache parse failed', e); }
+        } else if (hadEventsBefore) {
+          setStatus('Refreshing…', { loading: true });
         }
 
         // Only show skeletons when we have nothing to display yet.
@@ -2576,6 +3532,10 @@
         for (const ve of root.getAllSubcomponents('vevent')) {
           // Skip exception entries — they're folded into their series via the map above.
           if (ve.getFirstPropertyValue('recurrence-id')) continue;
+
+          // A cancelled event (or a whole cancelled series) is still published
+          // in the feed with STATUS:CANCELLED — it must not be listed.
+          if (String(ve.getFirstPropertyValue('status') || '').toUpperCase() === 'CANCELLED') continue;
 
           let baseEvent;
           try { baseEvent = new ICAL.Event(ve); }
@@ -2947,6 +3907,76 @@
       }
 
       // --------------------------- Filtering ----------------------------
+      // Date keys are YYYY-MM-DD strings in the display zone, so windows are
+      // plain string comparisons.
+      function addDaysKey(key, n) {
+        const d = isoKeyToUtcDate(key);
+        d.setUTCDate(d.getUTCDate() + n);
+        return utcDateToIsoKey(d);
+      }
+      function monthWindow(y, m) {          // m is 1–12; rolls over the year
+        const first = new Date(Date.UTC(y, m - 1, 1));
+        const last  = new Date(Date.UTC(y, m, 0));
+        return { from: utcDateToIsoKey(first), to: utcDateToIsoKey(last) };
+      }
+
+      // The inclusive [from, to] day range a "when" preset stands for, or
+      // null for no limit. Memoised per preset / range / day, since it's asked
+      // for once per event per chip count on every render.
+      let _winCache = { sig: '', win: null };
+      function whenWindow(f, now) {
+        if (!f.when || f.when === 'all') return null;
+        const t = dayKey(now);
+        const sig = `${f.when}|${f.from}|${f.to}|${t}|${TZ()}`;
+        if (_winCache.sig === sig) return _winCache.win;
+        const dow = isoKeyToUtcDate(t).getUTCDay();   // 0 = Sunday
+        const [y, m] = t.split('-').map(Number);
+        let win = null;
+        switch (f.when) {
+          case 'today':     win = { from: t, to: t }; break;
+          case 'tomorrow':  { const k = addDaysKey(t, 1); win = { from: k, to: k }; break; }
+          case 'weekend':   // the coming Sat–Sun, or the rest of the current one
+            if (dow === 6)      win = { from: t, to: addDaysKey(t, 1) };
+            else if (dow === 0) win = { from: t, to: t };
+            else { const sat = addDaysKey(t, 6 - dow); win = { from: sat, to: addDaysKey(sat, 1) }; }
+            break;
+          case 'week':      win = { from: addDaysKey(t, -dow), to: addDaysKey(t, 6 - dow) }; break;
+          case 'next7':     win = { from: t, to: addDaysKey(t, 6) }; break;
+          case 'month':     win = monthWindow(y, m); break;
+          case 'nextmonth': win = monthWindow(y, m + 1); break;
+          case 'custom': {
+            let from = f.from || '', to = f.to || '';
+            if (!from && !to) { win = null; break; }
+            if (from && to && from > to) [from, to] = [to, from];
+            win = { from: from || '0000-01-01', to: to || '9999-12-31' };
+            break;
+          }
+        }
+        _winCache = { sig, win };
+        return win;
+      }
+
+      // An event's first/last day keys, cached on the event per display zone.
+      function dayKeysOf(ev) {
+        const tz = TZ();
+        if (ev._dkTz !== tz) { ev._dk = eventDayKeys(ev); ev._dkTz = tz; }
+        return ev._dk;
+      }
+
+      function dateMatches(ev, f, now) {
+        const hasParts = f.year !== 'all' || f.month !== 'all' || f.mday !== 'all';
+        const win = whenWindow(f, now);
+        if (!win && !hasParts) return true;
+        const { startKey, endKey } = dayKeysOf(ev);
+        // Windows match any overlap, so a multi-day event counts on each day.
+        if (win && (startKey > win.to || endKey < win.from)) return false;
+        // Year / month / day parts match the day the event starts.
+        if (f.year  !== 'all' && startKey.slice(0, 4) !== f.year) return false;
+        if (f.month !== 'all' && +startKey.slice(5, 7) !== +f.month) return false;
+        if (f.mday  !== 'all' && +startKey.slice(8, 10) !== +f.mday) return false;
+        return true;
+      }
+
       function eventMatches(ev, f, now) {
         if (f.class    !== 'all' && ev.tags.class    !== f.class)    return false;
         if (f.category !== 'all' && ev.tags.category !== f.category) return false;
@@ -2954,6 +3984,7 @@
         if (f.dow      !== 'all' && dayOfWeek(ev.start, ev.isAllDay) !== parseInt(f.dow, 10)) return false;
         if (f.upcomingOnly && ev.end < now)                          return false;
         if (f.starredOnly && !state.stars.has(ev.uid))               return false;
+        if (!dateMatches(ev, f, now))                                return false;
         if (f.search) {
           const q = f.search.trim().toLowerCase();
           if (q) {
@@ -2967,6 +3998,13 @@
       function applyFilters() {
         const now = new Date();
         state.filtered = state.events.filter(ev => eventMatches(ev, state.prefs.filters, now));
+        // The calendar ignores "Upcoming only": that toggle lives in the list
+        // toolbar and can't be seen from the calendar, where it just blanked
+        // out every past day. Past events are faded there instead.
+        const calF = Object.assign({}, state.prefs.filters, { upcomingOnly: false });
+        state.calFiltered = calF.upcomingOnly === state.prefs.filters.upcomingOnly
+          ? state.filtered
+          : state.events.filter(ev => eventMatches(ev, calF, now));
         // Clamp current page; recompute paged slice
         const pages = totalPages();
         if (state.prefs.page > pages) state.prefs.page = pages;
@@ -3010,6 +4048,15 @@
         for (let i = 0; i < 7; i++) {
           counts.dow[String(i)] = subset.filter(ev => dayOfWeek(ev.start, ev.isAllDay) === i).length;
         }
+        // Date presets
+        counts.when = {};
+        const fw = Object.assign({}, state.prefs.filters, { when: 'all' });
+        const wSubset = state.events.filter(ev => eventMatches(ev, fw, now));
+        for (const v of WHEN_VALUES) {
+          const fv = Object.assign({}, fw, { when: v });
+          counts.when[v] = v === 'all' ? wSubset.length
+            : wSubset.filter(ev => dateMatches(ev, fv, now)).length;
+        }
         return counts;
       }
 
@@ -3035,7 +4082,7 @@
       function renderFilterBadge() {
         const f = state.prefs.filters;
         let n = 0;
-        for (const k of ['class', 'category', 'venue', 'dow']) if (f[k] !== 'all') n++;
+        for (const k of ['class', 'category', 'venue', 'dow', 'when', 'year', 'month', 'mday']) if (f[k] !== 'all') n++;
         if ((f.search || '').trim()) n++;
         if (f.starredOnly) n++;
         const badge = $('#filter-count');
@@ -3045,17 +4092,48 @@
       }
 
       // --------------------------- Rendering ----------------------------
+      // A full render rebuilds every card. If keyboard focus was on one (the
+      // once-a-minute refresh, a data refresh), put it back on the same
+      // control of the same event instead of dropping it to <body>.
+      function captureCardFocus() {
+        const a = document.activeElement;
+        const card = a && a.closest && a.closest('.event-card');
+        if (!card) return () => {};
+        const uid = card.dataset.uid;
+        const cls = ['star-btn', 'share-btn'].find(c => a.classList.contains(c)) || 'title-btn';
+        const root = a.closest('#cal-day-events') ? '#cal-day-events' : '#events';
+        return () => {
+          const now = document.activeElement;
+          if (now && now !== document.body && now.isConnected) return;   // focus survived
+          const t = document.querySelector(`${root} .event-card[data-uid="${CSS.escape(uid)}"] .${cls}`);
+          if (t) t.focus({ preventScroll: true });
+        };
+      }
+
       function render() {
+        const restoreFocus = captureCardFocus();
+        buildYearOptions();
         renderList();
         renderCalendar();
         renderChipCounts();
         renderFilterBadge();
+        syncDateUI();
         const n = state.filtered.length;
         const total = state.events.length;
-        $('#count').textContent =
-          (n === total)
-            ? `${n} event${n === 1 ? '' : 's'}`
-            : `${n} of ${total} events`;
+        const countText = (n === total)
+          ? `${n} event${n === 1 ? '' : 's'}`
+          : `${n} of ${total} events`;
+        $('#count').textContent = countText;
+        renderHeaderCount(countText);
+        restoreFocus();
+      }
+
+      // Header copy of the count, plus where you are when there are pages.
+      function renderHeaderCount(countText) {
+        const hc = $('#hc-count');
+        if (!hc) return;
+        const pages = totalPages();
+        hc.textContent = countText + (pages > 1 ? ` · page ${state.prefs.page} of ${pages}` : '');
       }
 
       function renderList() {
@@ -3067,6 +4145,7 @@
               ? 'No events loaded yet.'
               : 'No events match your filters. Try resetting them.'));
           renderPagination();
+          updateHeaderContext();   // clears the header month — no cards, no month
           return;
         }
 
@@ -3078,9 +4157,52 @@
             wrap.appendChild(el('h3', { class: 'month-heading' }, mk));
             lastMonthKey = mk;
           }
-          wrap.appendChild(renderCard(ev, now));
+          const card = renderCard(ev, now);
+          card.dataset.month = mk;   // read by updateHeaderContext while scrolling
+          wrap.appendChild(card);
         }
         renderPagination();
+        // Paging only re-renders the list, so refresh "page X of Y" here too.
+        renderHeaderCount($('#count').textContent);
+        updateHeaderContext();
+      }
+
+      // Desktop list view shows "<Month Year>" and the count in the header,
+      // centred. The month follows the topmost card still visible below the
+      // header, so it changes as a page crosses from one month to the next.
+      function updateHeaderContext() {
+        const hc = $('#header-context');
+        if (!hc) return;
+        const show = DESKTOP_MQ.matches && state.prefs.view === 'list';
+        hc.hidden = !show;
+        if (!show) return;
+        const headerBottom = $('.app-header').getBoundingClientRect().bottom;
+        let month = '';
+        for (const card of $$('#events .event-card')) {
+          if (card.getBoundingClientRect().bottom > headerBottom + 8) { month = card.dataset.month || ''; break; }
+        }
+        const m = $('#hc-month');
+        if (m.textContent !== month) m.textContent = month;
+      }
+
+      function wireHeaderContext() {
+        let queued = false;
+        window.addEventListener('scroll', () => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => { queued = false; updateHeaderContext(); });
+        }, { passive: true });
+        // Settings / help: beside the view tabs on desktop, so nothing crowds
+        // the centred month; back in the brand row's corner on phones.
+        const placeHeaderActions = () => {
+          const actions = $('.brand-actions');
+          if (DESKTOP_MQ.matches) $('#header-tools').prepend(actions);
+          else $('.brand-row').append(actions);
+        };
+        placeHeaderActions();
+        const onBp = () => { placeHeaderActions(); updateHeaderContext(); };
+        if (DESKTOP_MQ.addEventListener) DESKTOP_MQ.addEventListener('change', onBp);
+        else if (DESKTOP_MQ.addListener) DESKTOP_MQ.addListener(onBp);
       }
 
       function renderPagination() {
@@ -3098,10 +4220,13 @@
           // Scroll list back to top of events on page change.
           $('#view-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
+        // Only numbered buttons can be "current" — the ‹ › arrows target
+        // page 1 / the last page at the ends, and used to light up as if
+        // they were the current page.
         const btn = (n, label, opts) => el('button', Object.assign({
           type: 'button',
-          class: 'page-btn' + (n === cur ? ' current' : ''),
-          'aria-current': n === cur ? 'page' : null,
+          class: 'page-btn' + (!label && n === cur ? ' current' : ''),
+          'aria-current': !label && n === cur ? 'page' : null,
           onClick: () => goto(n),
         }, opts || {}), label || String(n));
 
@@ -3372,11 +4497,20 @@
           '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
         })[c]);
       }
+      // Match on the raw text and escape each piece separately. Escaping first
+      // and matching afterwards let a query like "&" or "amp" land inside an
+      // entity ("&amp;"), which then rendered as a stray "amp;".
       function highlightSearch(text, q) {
-        const safe = escapeHtml(text);
-        if (!q) return safe;
+        text = String(text == null ? '' : text);
+        if (!q) return escapeHtml(text);
         const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        return safe.replace(re, m => `<mark>${m}</mark>`);
+        let out = '', last = 0, m;
+        while ((m = re.exec(text)) !== null) {
+          if (!m[0]) { re.lastIndex++; continue; }
+          out += escapeHtml(text.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+          last = m.index + m[0].length;
+        }
+        return out + escapeHtml(text.slice(last));
       }
       // For previews: snap window around the first search-hit so the highlight is visible.
       function previewSnippet(text, q, maxLen) {
@@ -3411,11 +4545,16 @@
 
       // Time-zone abbreviation for a given moment in the active TZ.
       // (E.g. "CDT" in summer Chicago, "EST" in winter NY, "GMT+5:30" for India.)
+      const _abbrCache = new Map();   // one formatter per zone, as in fmt()
       function tzAbbr(date) {
         try {
-          const parts = new Intl.DateTimeFormat('en-US', {
-            timeZone: TZ(), timeZoneName: 'short',
-          }).formatToParts(date);
+          const tz = TZ();
+          let f = _abbrCache.get(tz);
+          if (!f) {
+            f = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' });
+            _abbrCache.set(tz, f);
+          }
+          const parts = f.formatToParts(date);
           const t = parts.find(p => p.type === 'timeZoneName');
           return t ? t.value : '';
         } catch { return ''; }
@@ -3520,7 +4659,9 @@
           });
         }
 
-        $('#cal-title').textContent = fmt(first, { month: 'long', year: 'numeric' });
+        // Grid dates are local-midnight stand-ins for calendar dates, so they
+        // are formatted and keyed in the device zone (fmt's allDay flag).
+        $('#cal-title').textContent = fmt(first, { month: 'long', year: 'numeric' }, true);
 
         const grid = $('#cal-grid');
         grid.innerHTML = '';
@@ -3528,25 +4669,28 @@
           grid.appendChild(el('div', { class: 'dow' }, d));
         }
 
-        const today = new Date();
-        const byDay = bucketByDay(state.filtered);
-        const MAX_BARS = 2;
+        const now = new Date();
+        const todayKey = dayKey(now);
+        const selKey = state.selectedDay ? localKey(state.selectedDay) : null;
+        const byDay = bucketByDay(state.calFiltered);
+        const desktop = DESKTOP_MQ.matches;
+        const MAX_BARS = desktop ? 4 : 2;
 
         for (const cell of cells) {
-          const dayKeyStr = dayKey(cell.date);
+          const dayKeyStr = localKey(cell.date);
           const dayEvents = byDay.get(dayKeyStr) || [];
           const classes = [
             'cal-cell',
             cell.otherMonth ? 'other-month' : '',
-            isSameDay(cell.date, today) ? 'today' : '',
-            state.selectedDay && isSameDay(cell.date, state.selectedDay) ? 'selected' : '',
+            dayKeyStr === todayKey ? 'today' : '',
+            dayKeyStr === selKey ? 'selected' : '',
             dayEvents.length ? 'has-events' : '',
           ].filter(Boolean).join(' ');
 
           const cellEl = el('div', {
             class: classes,
             onClick: () => { state.selectedDay = cell.date; renderCalendar(); },
-            'aria-label': fmt(cell.date, { weekday: 'long', month: 'long', day: 'numeric' }) +
+            'aria-label': fmt(cell.date, { weekday: 'long', month: 'long', day: 'numeric' }, true) +
               (dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}` : ''),
           });
           cellEl.appendChild(el('span', { class: 'num' }, String(cell.date.getDate())));
@@ -3560,11 +4704,7 @@
           const bars = el('div', { class: 'cal-bars' });
           const shown = dayEvents.slice(0, MAX_BARS);
           for (const ev of shown) {
-            const evStartKey = dayKey(ev.start);
-            const evEndKey   = dayKey(ev.end);
-            const adjustedEnd = (ev.isAllDay && ev.end > ev.start &&
-                                 ev.end.getHours() === 0 && ev.end.getMinutes() === 0)
-              ? dayKey(new Date(ev.end.getTime() - 1)) : evEndKey;
+            const { startKey: evStartKey, endKey: adjustedEnd } = eventDayKeys(ev);
             const isStart = dayKeyStr === evStartKey;
             const isEnd   = dayKeyStr === adjustedEnd;
             let span = '';
@@ -3574,16 +4714,23 @@
               else span = 'bar-mid';
             }
             const cls = ev.tags.class ? `class-${ev.tags.class}` : '';
-            const label = isStart
-              ? truncate(ev.summary, 18)
-              : el('span', { class: 'bar-cont' }, '…');
             const bar = el('div', {
-              class: ['cal-bar', cls, span].filter(Boolean).join(' '),
-              title: ev.summary + (ev.tags.class ? ` · ${ev.tags.class}` : ''),
+              class: ['cal-bar', cls, span, ev.end < now ? 'past' : ''].filter(Boolean).join(' '),
+              title: (ev.isAllDay ? '' : fmt(ev.start, { hour: 'numeric', minute: '2-digit' }) + ' · ') +
+                     ev.summary + (ev.tags.class ? ` · ${ev.tags.class}` : ''),
               onClick: (e) => { e.stopPropagation(); openDialog(ev); },
             });
-            if (typeof label === 'string') bar.textContent = label;
-            else bar.appendChild(label);
+            if (isStart) {
+              // Desktop cells are wide enough for the start time and a CSS
+              // ellipsis; phones keep the short character-count label.
+              if (!ev.isAllDay) {
+                bar.appendChild(el('span', { class: 'bar-time' },
+                  fmt(ev.start, { hour: 'numeric', minute: '2-digit' }).replace(/:00(?= )/, '').replace(' ', '').toLowerCase()));
+              }
+              bar.appendChild(document.createTextNode(desktop ? ev.summary : truncate(ev.summary, 18)));
+            } else {
+              bar.appendChild(el('span', { class: 'bar-cont' }, '…'));
+            }
             bars.appendChild(bar);
           }
           if (dayEvents.length > MAX_BARS) {
@@ -3601,7 +4748,13 @@
       }
 
       function renderWeekView() {
-        const ref = state.selectedDay || state.calRef;
+        // With no day picked, open on the current week when the calendar is on
+        // the current month — not the week holding the 1st, which is usually
+        // in the past.
+        const today0 = todayInTz();
+        const onThisMonth = state.calRef.getFullYear() === today0.getFullYear() &&
+                            state.calRef.getMonth()    === today0.getMonth();
+        const ref = state.selectedDay || (onThisMonth ? today0 : state.calRef);
         // Find Sunday of this week
         const sun = new Date(ref);
         sun.setDate(sun.getDate() - sun.getDay());
@@ -3614,30 +4767,33 @@
         const sat = days[6];
         const sameMonth = sun.getMonth() === sat.getMonth();
         $('#cal-title').textContent = sameMonth
-          ? `${fmt(sun, { month:'short', day:'numeric' })} – ${fmt(sat, { day:'numeric', year:'numeric' })}`
-          : `${fmt(sun, { month:'short', day:'numeric' })} – ${fmt(sat, { month:'short', day:'numeric', year:'numeric' })}`;
+          // {day, year} without a month formats as "2026 (day: 26)" in en-US,
+          // so the "26, 2026" tail is assembled by hand.
+          ? `${fmt(sun, { month:'short', day:'numeric' }, true)} – ${fmt(sat, { day:'numeric' }, true)}, ${fmt(sat, { year:'numeric' }, true)}`
+          : `${fmt(sun, { month:'short', day:'numeric' }, true)} – ${fmt(sat, { month:'short', day:'numeric', year:'numeric' }, true)}`;
 
         const week = $('#cal-week');
         week.innerHTML = '';
-        const today = new Date();
-        const byDay = bucketByDay(state.filtered);
+        const now = new Date();
+        const todayKey = dayKey(now);
+        const byDay = bucketByDay(state.calFiltered);
 
         for (const d of days) {
-          const isToday = isSameDay(d, today);
-          const dayEvents = byDay.get(dayKey(d)) || [];
+          const isToday = localKey(d) === todayKey;
+          const dayEvents = byDay.get(localKey(d)) || [];
           const cell = el('div', {
             class: 'week-cell' + (isToday ? ' today' : ''),
-            'aria-label': fmt(d, { weekday: 'long', month:'long', day:'numeric' }),
+            'aria-label': fmt(d, { weekday: 'long', month:'long', day:'numeric' }, true),
           });
           cell.appendChild(el('div', { class: 'week-day-label' },
-            fmt(d, { weekday: 'short' }) + ' ' + fmt(d, { day: 'numeric' })));
+            fmt(d, { weekday: 'short' }, true) + ' ' + fmt(d, { day: 'numeric' }, true)));
           if (dayEvents.length === 0) {
             cell.appendChild(el('span', { class: 'muted', style: { fontSize: '.72rem' } }, '—'));
           } else {
             for (const ev of dayEvents) {
               const cls = ev.tags.class ? `class-${ev.tags.class}` : '';
               const item = el('div', {
-                class: 'week-event ' + cls,
+                class: 'week-event ' + cls + (ev.end < now ? ' past' : ''),
                 onClick: () => openDialog(ev),
                 title: ev.summary,
               });
@@ -3657,9 +4813,9 @@
         const list = $('#cal-day-events');
         list.innerHTML = '';
         if (state.selectedDay) {
-          const dayEvents = byDay.get(dayKey(state.selectedDay)) || [];
+          const dayEvents = byDay.get(localKey(state.selectedDay)) || [];
           list.appendChild(el('h3', null,
-            fmt(state.selectedDay, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) +
+            fmt(state.selectedDay, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }, true) +
             ` · ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}`));
           if (dayEvents.length === 0) {
             list.appendChild(el('p', { class: 'muted' }, 'No events for this day.'));
@@ -3683,15 +4839,9 @@
       function bucketByDay(events) {
         const map = new Map();
         for (const ev of events) {
-          // Compute start and end day-keys in the *active* TZ — this is what
-          // the user sees in their calendar.
-          const startKey = dayKey(ev.start);
-          let   endKey   = dayKey(ev.end);
-          // All-day events end at the following midnight (exclusive); back off one day.
-          if (ev.isAllDay && ev.end > ev.start &&
-              ev.end.getHours() === 0 && ev.end.getMinutes() === 0) {
-            endKey = dayKey(new Date(ev.end.getTime() - 1));
-          }
+          // Day-keys as the user sees them: display TZ for timed events,
+          // literal date for all-day ones.
+          const { startKey, endKey } = eventDayKeys(ev);
           // Iterate keys via UTC date math (keys are ISO YYYY-MM-DD strings).
           const cursor = isoKeyToUtcDate(startKey);
           const endTs  = isoKeyToUtcDate(endKey).getTime();
@@ -4146,19 +5296,70 @@
 
         $('#page-size').addEventListener('change', (e) => {
           const v = parseInt(e.target.value, 10);
-          if (![10,20,30,50,100,0].includes(v)) return;
+          if (!ALL_PAGE_SIZES.includes(v)) return;
           state.prefs.pageSize = v;
           state.prefs.page = 1;
           refilter();
         });
 
+        // Date section ------------------------------------------------------
+        const mday = $('#f-mday');
+        for (let d = 1; d <= 31; d++) mday.appendChild(el('option', { value: String(d) }, String(d)));
+
+        const setDateFilter = (key, val) => {
+          state.prefs.filters[key] = val;
+          state.prefs.page = 1;
+          refilter();
+        };
+        $('#f-year') .addEventListener('change', (e) => setDateFilter('year',  e.target.value));
+        $('#f-month').addEventListener('change', (e) => setDateFilter('month', e.target.value));
+        $('#f-mday') .addEventListener('change', (e) => setDateFilter('mday',  e.target.value));
+        // 'change' (not 'input') so half-typed dates don't filter mid-entry.
+        $('#date-from').addEventListener('change', (e) => setDateFilter('from', e.target.value || ''));
+        $('#date-to')  .addEventListener('change', (e) => setDateFilter('to',   e.target.value || ''));
+        // Picking "Custom…" reveals the range; focus its first field.
+        $('.chips[data-filter="when"]').addEventListener('click', (e) => {
+          const btn = e.target.closest('.chip');
+          if (btn && btn.dataset.value === 'custom') setTimeout(() => $('#date-from').focus(), 0);
+        });
+
         $('#reset-filters').addEventListener('click', resetFilters);
         $('#refresh').addEventListener('click', loadCalendar);
+
+        // Filters are a collapsed disclosure on phones (so events come first)
+        // and a permanently open sidebar on desktop, where collapsing it would
+        // only leave an empty column.
+        const panel = $('#filters-panel');
+        panel.querySelector('summary').addEventListener('click', (e) => {
+          if (DESKTOP_MQ.matches) e.preventDefault();
+        });
+        // Upcoming / Starred / Per page: in the sidebar's "Show" group on
+        // desktop, back in the list toolbar (ahead of the count) on smaller
+        // screens where the filter panel is collapsed. Moving the nodes keeps
+        // their listeners and state.
+        const placeListOptions = () => {
+          const opts = ['#opt-upcoming', '#opt-starred', '#opt-pagesize'].map(s => $(s));
+          const group = $('#show-group');
+          if (DESKTOP_MQ.matches) {
+            $('#show-slot').append(...opts);
+            group.hidden = false;
+          } else {
+            const toolbar = $('.list-controls');
+            opts.forEach(o => toolbar.insertBefore(o, $('#count')));
+            group.hidden = true;
+          }
+        };
+        const syncLayout = () => { panel.open = DESKTOP_MQ.matches; placeListOptions(); };
+        syncLayout();
+        const onBreakpoint = () => { syncLayout(); renderCalendar(); };
+        if (DESKTOP_MQ.addEventListener) DESKTOP_MQ.addEventListener('change', onBreakpoint);
+        else if (DESKTOP_MQ.addListener) DESKTOP_MQ.addListener(onBreakpoint);   // Safari < 14
       }
 
       function switchView(name) {
         if (!['list','calendar','embed'].includes(name)) name = 'list';
         state.prefs.view = name;
+        document.body.dataset.view = name;   // lets the desktop layout adapt per view
         savePrefs();
         $$('.tab').forEach(t => {
           const active = t.dataset.view === name;
@@ -4168,6 +5369,163 @@
         $('#view-list')    .classList.toggle('hidden', name !== 'list');
         $('#view-calendar').classList.toggle('hidden', name !== 'calendar');
         $('#view-embed')   .classList.toggle('hidden', name !== 'embed');
+        syncEmbed();   // pane ↔ full view changes the embed's mode
+        syncPageSizeOptions();   // the list may have been hidden while the width changed
+        updateHeaderContext();   // month / count show in the header for the list only
+      }
+
+      // --------------------------- Appearance ---------------------------
+      // Theme, density, card columns and the Google pane are all expressed as
+      // attributes / classes that the stylesheet keys off; nothing re-renders.
+      function applyAppearance() {
+        const p = state.prefs;
+        const r = document.documentElement;
+        const mode = THEMES[p.theme] || (DARK_MQ.matches ? 'dark' : 'light');
+        r.setAttribute('data-theme', mode);
+        if (THEMES[p.theme] && p.theme !== 'light' && p.theme !== 'dark') r.setAttribute('data-palette', p.theme);
+        else r.removeAttribute('data-palette');
+        r.setAttribute('data-density', p.density);
+        r.setAttribute('data-cols', p.columns ? String(p.columns) : 'auto');
+
+        // Browser chrome (mobile address bar) matches the header surface.
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = getComputedStyle(r).getPropertyValue('--surface').trim() || '#ffffff';
+
+        document.body.classList.toggle('gpane', !!p.gpane);
+        document.body.classList.toggle('gpane-collapsed', !!p.gpane && !!p.gpaneCollapsed);
+        const tg = $('#gpane-toggle');
+        if (tg) {
+          const open = !p.gpaneCollapsed;
+          tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+          tg.title = (open ? 'Collapse' : 'Expand') + ' Google Calendar (G)';
+          tg.setAttribute('aria-label', tg.title);
+        }
+        syncEmbed();
+        syncPageSizeOptions();   // column count or density may have changed
+      }
+
+      // Card columns actually on screen. A fixed choice can still collapse to
+      // one column on a narrow screen, and "Auto" varies with the width, so
+      // read the --cols the stylesheet's container queries resolved.
+      function effectiveColumns() {
+        const list = $('#events');
+        if (!list) return 1;
+        const n = parseInt(getComputedStyle(list).getPropertyValue('--cols'), 10);
+        return n >= 1 && n <= 4 ? n : 1;
+      }
+
+      // Rebuild the "Per page" options as multiples of the column count. If
+      // the current size isn't on the new list, snap to the nearest option and
+      // keep roughly the same events in view rather than jumping to page 1.
+      let pageSizeCols = 0;
+      function syncPageSizeOptions() {
+        const sel = $('#page-size');
+        if (!sel) return;
+        const cols = effectiveColumns();
+        const sizes = PAGE_SIZES_FOR(cols);
+        if (cols !== pageSizeCols) {
+          pageSizeCols = cols;
+          sel.replaceChildren(
+            ...sizes.map(n => el('option', { value: String(n) }, String(n))),
+            el('option', { value: '0' }, 'All'));
+        }
+
+        const cur = state.prefs.pageSize;
+        if (cur !== 0 && !sizes.includes(cur)) {
+          const next = sizes.reduce((best, n) =>
+            Math.abs(n - cur) < Math.abs(best - cur) ? n : best, sizes[0]);
+          const firstShown = (state.prefs.page - 1) * cur;   // index of the top event
+          state.prefs.pageSize = next;
+          state.prefs.page = Math.floor(firstShown / next) + 1;
+          savePrefs();
+          applyFilters();   // clamps the page and re-slices
+          renderList();
+        }
+        sel.value = String(state.prefs.pageSize);
+      }
+
+      // Is the embed currently showing as the narrow side pane?
+      function embedIsPane() {
+        return PANE_MQ.matches && state.prefs.gpane && state.prefs.view !== 'embed';
+      }
+
+      // One iframe serves both the Google tab and the side pane. A narrow pane
+      // reads far better in Google's Agenda mode than in a squeezed month
+      // grid, and either way it should show the user's chosen time zone.
+      // src only changes when the wanted URL does, since that reloads it.
+      function syncEmbed() {
+        const iframe = $('#gcal-iframe');
+        if (!iframe) return;
+        if (!iframe.dataset.base) iframe.dataset.base = iframe.getAttribute('src');
+        const u = new URL(iframe.dataset.base);
+        u.searchParams.set('ctz', TZ());
+        if (embedIsPane()) {
+          u.searchParams.set('mode', 'AGENDA');
+          u.searchParams.set('showTitle', '0');
+          u.searchParams.set('showPrint', '0');
+        }
+        const want = u.toString();
+        if (iframe.getAttribute('src') !== want) iframe.setAttribute('src', want);
+        const open = $('#gpane-open');
+        if (open) open.href = GCAL_HTML_URL;
+      }
+
+      function setGpaneCollapsed(collapsed) {
+        state.prefs.gpaneCollapsed = !!collapsed;
+        savePrefs();
+        applyAppearance();
+      }
+
+      // Toggle from the keyboard: on a wide screen with the pane hidden in
+      // Settings, G switches it back on rather than doing nothing.
+      function toggleGpane() {
+        if (!PANE_MQ.matches || state.prefs.view === 'embed') return;
+        if (!state.prefs.gpane) {
+          state.prefs.gpane = true;
+          state.prefs.gpaneCollapsed = false;
+          savePrefs();
+          applyAppearance();
+          return;
+        }
+        setGpaneCollapsed(!state.prefs.gpaneCollapsed);
+      }
+
+      function wireGpane() {
+        $('#gpane-toggle').addEventListener('click', (e) => {
+          e.stopPropagation();
+          setGpaneCollapsed(!state.prefs.gpaneCollapsed);
+        });
+        // The whole collapsed rail is a target, not just the small button.
+        $('.gpane-bar').addEventListener('click', (e) => {
+          if (state.prefs.gpaneCollapsed && !e.target.closest('a')) setGpaneCollapsed(false);
+        });
+        // "Auto" columns follow the events column's width: window resizes and
+        // opening / collapsing the Google pane both change it.
+        const mainCol = $('.main-col');
+        if (mainCol && typeof ResizeObserver === 'function') {
+          new ResizeObserver(() => syncPageSizeOptions()).observe(mainCol);
+        } else {
+          window.addEventListener('resize', syncPageSizeOptions);
+        }
+        const onPaneBreakpoint = () => syncEmbed();
+        if (PANE_MQ.addEventListener) PANE_MQ.addEventListener('change', onPaneBreakpoint);
+        else if (PANE_MQ.addListener) PANE_MQ.addListener(onPaneBreakpoint);
+        // 'Auto' theme follows the device live.
+        const onScheme = () => { if (state.prefs.theme === 'auto') applyAppearance(); };
+        if (DARK_MQ.addEventListener) DARK_MQ.addEventListener('change', onScheme);
+        else if (DARK_MQ.addListener) DARK_MQ.addListener(onScheme);
+      }
+
+      // Sticky sidebars and month headings sit just under the header, whose
+      // height depends on fonts and wrapping — so measure it, don't guess.
+      function syncHeaderHeight() {
+        const h = $('.app-header');
+        if (!h) return;
+        const set = () => document.documentElement.style
+          .setProperty('--header-h', h.offsetHeight + 'px');
+        set();
+        if (typeof ResizeObserver === 'function') new ResizeObserver(set).observe(h);
+        else window.addEventListener('resize', set);
       }
 
       function wireViews() {
@@ -4198,8 +5556,9 @@
           renderCalendar();
         });
         $('#cal-today').addEventListener('click', () => {
-          state.calRef = firstOfMonth(new Date());
-          state.selectedDay = new Date();
+          const t = todayInTz();
+          state.calRef = firstOfMonth(t);
+          state.selectedDay = t;
           renderCalendar();
         });
         $$('.cal-mode button').forEach(btn => {
@@ -4228,9 +5587,19 @@
               const media = $('#dlg-media');
               if (media) { media.innerHTML = ''; media.hidden = true; }
             }
-            // Return focus to the element that opened the dialog.
-            if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
-              try { state.lastFocused.focus(); } catch { /* ignore */ }
+            // Return focus to the element that opened the dialog. If the list
+            // re-rendered meanwhile (a star toggled with "Starred only" on, an
+            // auto-refresh), that node is detached: fall back to the same
+            // event's new card, if it is still listed. Then drop the reference
+            // so a detached card subtree isn't kept alive.
+            let back = state.lastFocused;
+            state.lastFocused = null;
+            if (back && !back.isConnected) {
+              const uid = back.closest && back.closest('.event-card') && back.closest('.event-card').dataset.uid;
+              back = uid ? document.querySelector(`.event-card[data-uid="${CSS.escape(uid)}"] .title-btn`) : null;
+            }
+            if (back && typeof back.focus === 'function') {
+              try { back.focus(); } catch { /* ignore */ }
             }
           });
         });
@@ -4279,6 +5648,8 @@
           sel.value = '__auto__';
         }
         updateTzHint();
+        syncAppearanceUI();
+        updateAppStatus();
         $('#notify-enabled').checked = !!state.prefs.notify.enabled;
         $('#notify-lead').value = String(state.prefs.notify.leadMinutes);
         const dlg = $('#settings-dialog');
@@ -4286,8 +5657,47 @@
         else dlg.setAttribute('open', '');
       }
 
+      function syncAppearanceUI() {
+        const p = state.prefs;
+        const check = (name, val) => {
+          const r = document.querySelector(`input[name="${name}"][value="${val}"]`);
+          if (r) r.checked = true;
+        };
+        check('theme', p.theme);
+        check('density', p.density);
+        check('columns', p.columns);
+        $('#gpane-enabled').checked = !!p.gpane;
+      }
+
       function wireSettings() {
         $('#settings-btn').addEventListener('click', showSettings);
+
+        // Appearance changes apply live, behind the open dialog.
+        $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
+          if (!r.checked || !Object.prototype.hasOwnProperty.call(THEMES, r.value)) return;
+          state.prefs.theme = r.value;
+          savePrefs();
+          applyAppearance();
+        }));
+        $$('input[name="density"]').forEach(r => r.addEventListener('change', () => {
+          if (!r.checked || !['standard','compact'].includes(r.value)) return;
+          state.prefs.density = r.value;
+          savePrefs();
+          applyAppearance();
+        }));
+        $$('input[name="columns"]').forEach(r => r.addEventListener('change', () => {
+          const v = parseInt(r.value, 10);
+          if (!r.checked || ![0,1,2,3,4].includes(v)) return;
+          state.prefs.columns = v;
+          savePrefs();
+          applyAppearance();
+        }));
+        $('#gpane-enabled').addEventListener('change', (e) => {
+          state.prefs.gpane = e.target.checked;
+          if (e.target.checked) state.prefs.gpaneCollapsed = false;
+          savePrefs();
+          applyAppearance();
+        });
 
         $('#tz-select').addEventListener('change', (e) => {
           const v = e.target.value;
@@ -4303,6 +5713,7 @@
           applyFilters();
           render();
           updateTzHint();
+          syncEmbed();   // the Google embed shows the same zone
         });
 
         $('#notify-enabled').addEventListener('change', async (e) => {
@@ -4329,6 +5740,7 @@
           savePrefs();
           $('#settings-dialog').close();
           syncFiltersUI();
+          applyAppearance();
           switchView(state.prefs.view);
           applyFilters();
           render();
@@ -4343,7 +5755,10 @@
           if (e.ctrlKey || e.metaKey || e.altKey) return;
 
           const t = e.target;
-          const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+          // SELECT too: typing "1"/"2" to jump in the Day or Year dropdowns must
+          // not also switch views.
+          const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
+                                t.tagName === 'SELECT' || t.isContentEditable);
           const anyDialogOpen = $$('dialog[open]').length > 0;
 
           // Esc: dialog handler closes dialogs; also clear search if focused.
@@ -4390,6 +5805,7 @@
               return;
             }
           }
+          if (e.key === 'g' || e.key === 'G') { toggleGpane(); return; }
           if (e.key === ',') { showSettings(); return; }
           if (e.key === 'p' || e.key === 'P') { window.print(); return; }
         });
@@ -4421,10 +5837,15 @@
         // Re-evaluate at most once per wall-clock minute.
         const minute = Math.floor(Date.now() / 60000);
         if (minute === state.lastTickMinute) return;
-        state.lastTickMinute = minute;
 
-        // Advance the reminder window even if nothing visible changes.
+        // Advance the reminder window even if nothing visible changes — this
+        // must keep happening in a background tab, where reminders matter most.
         scheduleNotifications();
+
+        // Hidden tab: nothing to paint and no one to fetch for. Leave the
+        // minute unmarked so the visibilitychange catch-up repaints at once.
+        if (document.hidden) return;
+        state.lastTickMinute = minute;
 
         // Don't yank the page while the user is reading an event; preserve scroll.
         const dialogOpen = !!document.querySelector('dialog[open]');
@@ -4437,7 +5858,7 @@
 
         // Pull fresh calendar data on a slower cadence.
         if (Date.now() - state.lastDataFetch >= DATA_REFRESH_MS &&
-            !state.isLoadingCalendar && !dialogOpen) {
+            !state.isLoadingCalendar && !dialogOpen && !document.hidden) {
           state.lastDataFetch = Date.now();
           loadCalendar();
         }
@@ -4452,11 +5873,140 @@
         });
       }
 
+      // ------------------------- Installable app -------------------------
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      }
+      function isIOS() {
+        return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS reports as a Mac
+      }
+
+      // The browser's install offer, kept so our own buttons can trigger it.
+      // Chromium browsers only; Safari (iOS / macOS) installs from its menus.
+      let installPrompt = null;
+
+      function wireInstall() {
+        const btns = [$('#install-btn'), $('#install-btn-2')];
+        const show = (on) => btns.forEach(b => { b.hidden = !on; });
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();          // no mini-infobar; we show our own button
+          installPrompt = e;
+          show(true);
+          updateAppStatus();
+        });
+        const install = async () => {
+          if (!installPrompt) return;
+          const p = installPrompt;
+          installPrompt = null;        // a prompt event can only be used once
+          show(false);
+          try { await p.prompt(); await p.userChoice; } catch { /* dismissed */ }
+          updateAppStatus();
+        };
+        btns.forEach(b => b.addEventListener('click', install));
+        window.addEventListener('appinstalled', () => {
+          installPrompt = null;
+          show(false);
+          showToast('Installed — AAGeek Events is now in your apps');
+          updateAppStatus();
+        });
+      }
+
+      // One honest line in Settings → App about what this browser can do.
+      function updateAppStatus() {
+        const s = $('#app-status');
+        if (!s) return;
+        let text;
+        if (isStandalone())                 text = 'Running as an installed app.';
+        else if (installPrompt)             text = 'This browser can install AAGeek Events as an app.';
+        else if (!/^https?:$/.test(location.protocol) || !('serviceWorker' in navigator))
+                                            text = 'Open this page from its web address (https) to install it.';
+        else if (isIOS())                   text = 'On iPhone / iPad: tap the Share button, then “Add to Home Screen”.';
+        else                                text = 'Already installed, or install it from the browser menu (“Install app” / “Add to Home screen”).';
+        s.textContent = text;
+      }
+
+      // Service worker: offline support + safe updates. A new version is
+      // downloaded in the background and waits; the user is offered a reload
+      // rather than having code swapped under an open page.
+      function registerServiceWorker() {
+        if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+        const banner = $('#update-banner');
+        let waiting = null;
+        let accepted = false;
+        const offer = (w) => { waiting = w; banner.hidden = false; };
+
+        $('#update-reload').addEventListener('click', () => {
+          accepted = true;
+          banner.hidden = true;
+          if (waiting) waiting.postMessage('SKIP_WAITING');
+          else location.reload();
+        });
+        $('#update-dismiss').addEventListener('click', () => { banner.hidden = true; });
+        // Only reload for an update the user accepted — the very first
+        // install also changes the controller (clients.claim), and must not
+        // reload the page out from under a first-time visitor.
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (accepted) location.reload();
+        });
+
+        const start = () => navigator.serviceWorker.register('./sw.js').then((reg) => {
+          if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+          reg.addEventListener('updatefound', () => {
+            const w = reg.installing;
+            if (!w) return;
+            w.addEventListener('statechange', () => {
+              if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w);
+            });
+          });
+          // Installed windows stay open for days: look for a new version
+          // when the app comes back to the foreground, at most every 30 min.
+          let lastCheck = Date.now();
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden || Date.now() - lastCheck < 30 * 60 * 1000) return;
+            lastCheck = Date.now();
+            reg.update().catch(() => {});
+          });
+        }).catch((e) => console.warn('Service worker registration failed', e));
+
+        // Register after load so it doesn't compete with the first feed fetch.
+        if (document.readyState === 'complete') start();
+        else window.addEventListener('load', start, { once: true });
+      }
+
+      // Connection changes: say so when it drops, and fetch fresh events as
+      // soon as it returns (instead of waiting up to 10 minutes).
+      function wireConnectivity() {
+        window.addEventListener('offline', () => {
+          setStatus("You're offline — showing the events saved on this device.", { error: true });
+        });
+        window.addEventListener('online', () => {
+          setStatus('');
+          state.lastDataFetch = Date.now();
+          loadCalendar();
+        });
+      }
+
+      // Manifest shortcuts open "./?view=calendar" or "./?view=list". Apply
+      // it, then drop the parameter so shared links stay clean.
+      function applyLaunchParams() {
+        let view = null;
+        try { view = new URLSearchParams(location.search).get('view'); } catch { /* ignore */ }
+        if (!['list', 'calendar', 'embed'].includes(view)) return;
+        state.prefs.view = view;
+        try { history.replaceState(null, '', location.pathname + location.hash); } catch { /* ignore */ }
+      }
+
       // ------------------------------ Boot ------------------------------
       function boot() {
         wireGlobalErrors();
         loadPrefs();
+        applyLaunchParams();   // a manifest shortcut may ask for a view
         loadStars();
+        applyAppearance();
+        syncHeaderHeight();
+        wireHeaderContext();
+        wireGpane();
         wireFilters();
         wireViews();
         wireCalendar();
@@ -4468,6 +6018,9 @@
         switchView(state.prefs.view || 'list');   // open to user's preferred view
         loadCalendar();
         startAutoRefresh();   // keep events, reminders, and relative times live
+        wireInstall();
+        wireConnectivity();
+        registerServiceWorker();
       }
 
       // This script is at the end of <body>, so the DOM above is already

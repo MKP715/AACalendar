@@ -1,0 +1,42 @@
+{
+  "id": "./",
+  "name": "AAGeek Events",
+  "short_name": "AAGeek",
+  "description": "AAGeek / NETA65 / AAWSNY events — filter by class, category, venue and date, with a month / week calendar. Works offline.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0d9488",
+  "background_color": "#0b0e13",
+  "categories": ["lifestyle", "social", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png",     "sizes": "192x192", "type": "image/png",     "purpose": "any" },
+    { "src": "icons/icon-512.png",     "sizes": "512x512", "type": "image/png",     "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png",     "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png",     "purpose": "maskable" },
+    { "src": "icons/icon.svg",         "sizes": "any",     "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Event list",
+      "short_name": "List",
+      "description": "Open the upcoming events list",
+      "url": "./?view=list",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Calendar",
+      "short_name": "Calendar",
+      "description": "Open the month calendar",
+      "url": "./?view=calendar",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ],
+  "screenshots": [
+    { "src": "screenshots/wide.png",   "sizes": "1280x800", "type": "image/png", "form_factor": "wide",   "label": "Events with filters on desktop" },
+    { "src": "screenshots/narrow.png", "sizes": "540x1170", "type": "image/png", "form_factor": "narrow", "label": "Event list on a phone" }
+  ]
+}
