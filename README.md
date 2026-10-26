@@ -1,6 +1,6 @@
 # AAGeek Events
 
-A single-file, client-side events calendar that pulls events from a public Google Calendar feed and lets users **filter** them by class, category, venue, and day-of-week — without any server.
+A single-file, client-side events calendar that pulls events from a public Google Calendar feed — plus the [NETA 65 Grapevine / La Viña events](https://neta65.github.io/aagrapevine/events/) feed — and lets users **filter** them by class, category, venue, and day-of-week — without any server.
 
 The app is one `index.html` plus a few static files that make it an **installable, offline-capable app** (`manifest.webmanifest`, `sw.js`, `icons/`, `screenshots/`). Drop the folder on GitHub Pages, Netlify, Cloudflare Pages, S3, or any static host. No build step.
 
@@ -51,6 +51,21 @@ Tags are **case-insensitive** in the parser, but please write them in the canoni
 9. Stores both the **sanitized HTML** (for the event dialog) and a **plain-text** version (for card previews and search) on the event object.
 
 If an event's first line **doesn't** include `|`, or doesn't match any known tag, that event simply ends up with no tags — it'll show up under "All" filters but disappear from any specific filter.
+
+### NETA 65 Grapevine events (automatic)
+
+Everything on the [NETA 65 Grapevine / La Viña events page](https://neta65.github.io/aagrapevine/events/) comes into the app on its own, from that site's calendar feed (`https://neta65.github.io/aagrapevine/events.ics`). **Don't also add those events to Google Calendar** — they would show up twice.
+
+Those events have no tag line, so the app gives each one the line a hand-entered event would have, `NETA65|Service|<Venue>`, before the normal parser sees it:
+
+| The event has… | Venue |
+|---|---|
+| a web link (Zoom, etc.) as its location | `Virtual` |
+| a street address, and an online-meeting link in its description | `Hybrid` |
+| a street address, or no location yet ("venue to be announced") | `Physical` |
+| no location, but an online-meeting link in its description | `Virtual` |
+
+Image attachments on those events (the flyers, usually Google Drive images) become `IMG:` lines, so they show in the event dialog like any other event image. The feed lists each date of a monthly event separately; dates of the same event are grouped back together, so they get the 🔁 badge and a summary such as "Monthly · third Wednesday".
 
 ---
 
@@ -135,6 +150,8 @@ The first response containing a `BEGIN:VCALENDAR … END:VCALENDAR` body wins. T
 
 If every strategy fails and there's no cached data, the user gets a status banner with a link to switch to the Google embed tab, which always works.
 
+The **NETA 65 Grapevine feed** is fetched at the same time, directly — GitHub Pages sends `Access-Control-Allow-Origin: *`, so no proxy is needed. It has its own cache (`aageek_neta65_cache_v1`). Each feed is shown as soon as it arrives, merged into one list, so neither waits on the other, and either one failing leaves the other on screen: if the NETA 65 feed can't be reached, its saved copy is shown (with a note in the status line); if only Google fails and nothing is saved, the NETA 65 events are shown on their own.
+
 ### How recurring events are expanded
 
 `ical.js` provides an iterator for `RRULE` events. The app:
@@ -149,11 +166,12 @@ Each expanded occurrence becomes a full event object in `state.events`, sortable
 
 ### State management
 
-Three `localStorage` keys:
+Four `localStorage` keys:
 
 | Key | Contents |
 |---|---|
 | `aageek_calendar_cache_v1` | `{ ts: <ms>, text: <raw ICS> }` — last successful fetch (also what the installed app shows offline) |
+| `aageek_neta65_cache_v1` | The same, for the NETA 65 Grapevine feed |
 | `aageek_stars_v1` | Starred event ids; stars on occurrences more than ~a year old are pruned on load |
 | `aageek_prefs_v2` | All user preferences: view, calendar mode, page size, current page, time zone (and whether they picked it explicitly), notification settings, theme, card size, column count, Google pane on/collapsed, all filter values |
 
@@ -178,7 +196,7 @@ Installed, it opens in its own window with its own icon, offers **List** and **C
 | The page itself | Network-first (4 s timeout), falls back to the cached copy |
 | `icons/`, manifest | Cached, refreshed in the background |
 | Pico.css, ical.js, Google Fonts (CDN) | Precached, refreshed in the background |
-| Calendar feed and CORS proxies | **Never** — the app keeps its own copy in `localStorage` |
+| Calendar feeds (Google, its CORS proxies, NETA 65) | **Never** — the app keeps its own copy of each in `localStorage` |
 | Google Calendar embed, Drive images, maps / Zoom links | Never — passed straight through |
 
 **Releasing an update:** when a deploy changes any of the cached files (`index.html`, icons, manifest), **bump `VERSION` at the top of `sw.js`** (`'v1'` → `'v2'`). Open copies of the app then show *"A new version is available — Reload"*; nothing is swapped under an open page until the user accepts, and old caches are removed afterwards. (Even without a bump the page is network-first, so online users get new HTML on their next load — the bump is what refreshes the offline copy and the icons.)
@@ -207,6 +225,8 @@ Host the folder on any static web server (or open `index.html` directly for a qu
    ```
 
    Replace all three with your own values.
+
+   Just below them, `NETA65_ICS_URL` is the second feed merged into the list (the NETA 65 Grapevine events). Point it at another ICS feed, or set it to `''` to turn it off.
 
 3. **Update the embedded iframe** (also in the HTML body, search for `<iframe id="gcal-iframe">`) — replace its `src` with the **embed URL** you get from "Integrate calendar" → "Embed code" in Google Calendar settings.
 
@@ -249,12 +269,15 @@ Hit Save. The app's cache TTL is "next fetch" — within a few seconds of refres
 
 Tip: if you have many events that share the same body, use Google Calendar's "Duplicate event" feature — it copies the description including the tag-line.
 
+**Skip anything already on the [NETA 65 Grapevine events page](https://neta65.github.io/aagrapevine/events/)** — the app picks those up by itself (see [NETA 65 Grapevine events](#neta-65-grapevine-events-automatic)), and a copy in Google Calendar would appear twice.
+
 ---
 
 ## Limitations
 
 - **Reminders fire only while the app (tab or installed window) is open.** The service worker handles offline caching only; reminders with the app closed would need Web Push and a server.
 - **CORS proxies are third-party.** If Google ever consistently sets CORS headers on `basic.ics`, direct fetch will be used and proxies won't be needed.
+- **The Google Calendar tab / pane shows the Google calendar only.** NETA 65 Grapevine events appear in the List and Calendar views, not in the embedded Google Calendar.
 - **Time-zone abbreviation may show as `GMT±offset`** for zones without a short name (e.g. India shows `GMT+5:30` rather than `IST`). The displayed time is correct; only the label varies.
 - **Browsers without `<dialog>` support** (Safari < 15.4, Chrome < 37, Firefox < 98) will degrade — the dialogs fall back to a visible `open` attribute but without the focus-trap. All currently-shipping browsers support it natively.
 
@@ -291,7 +314,7 @@ This is a static site that loads HTML from a third-party source (Google Calendar
 
 ## License
 
-MIT for the application code in this repository. The CDN libraries keep their own licenses (Pico.css: MIT, ical.js: MPL-2.0). Calendar data © its respective Google Calendar owner.
+MIT for the application code in this repository. The CDN libraries keep their own licenses (Pico.css: MIT, ical.js: MPL-2.0). Calendar data © its respective Google Calendar owner and the NETA 65 Grapevine / La Viña committee.
 
 ---
 

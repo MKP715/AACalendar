@@ -2500,7 +2500,7 @@
 
   <noscript>
     <div style="padding:1rem;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;font-family:system-ui,sans-serif;">
-      <strong>JavaScript is required.</strong> This app filters events client-side from a Google Calendar ICS feed.
+      <strong>JavaScript is required.</strong> This app filters events client-side from a Google Calendar ICS feed and the NETA 65 Grapevine events feed.
       You can still view the calendar directly:
       <a href="https://calendar.google.com/calendar/embed?src=ec0c83a6ad02b239927d3c156bff2829935c3e91c4c82baff7119927ccf4cd9d%40group.calendar.google.com&ctz=America%2FChicago" target="_blank" rel="noopener">open in Google Calendar</a>.
     </div>
@@ -2668,7 +2668,7 @@
       </div>
       <div class="filter-actions">
         <button id="reset-filters" class="secondary" type="button">Reset filters</button>
-        <button id="refresh" class="secondary" type="button" title="Re-fetch from Google">↻ Refresh</button>
+        <button id="refresh" class="secondary" type="button" title="Re-fetch the event feeds">↻ Refresh</button>
       </div>
       </div>
     </details>
@@ -2947,7 +2947,7 @@
 
   <footer class="app-footer">
     <small>
-      Calendar data &copy; Google ·
+      Calendar data &copy; Google · NETA 65 Grapevine / La Viña committee ·
       Built with <a href="https://picocss.com" target="_blank" rel="noopener">Pico.css</a> &amp;
       <a href="https://github.com/kewisch/ical.js" target="_blank" rel="noopener">ical.js</a> ·
       Installable · works offline · no server required.
@@ -2982,6 +2982,8 @@
     /* =====================================================================
        AAGeek Events — inline app
        - Fetches public Google Calendar ICS (with CORS proxy fallbacks)
+       - Merges in the NETA 65 Grapevine / La Viña events ICS, tagged
+         NETA65|Service|<venue> on the way in (see "NETA 65 feed")
        - Parses with ical.js (handles recurring events, exceptions, TZID)
        - Description content is HTML (<br>, <a>, entities). We extract tags
          from the first segment (before the first <br>/newline), sanitize the
@@ -3034,9 +3036,18 @@
         return text.slice(start, end + endTag.length);
       }
 
+      // The NETA 65 Grapevine / La Viña committee's own events feed, merged in
+      // beside the Google one so those events never have to be copied into
+      // Google Calendar. GitHub Pages sends CORS headers, so it is fetched
+      // directly — no proxy.
+      const NETA65_ICS_URL = 'https://neta65.github.io/aagrapevine/events.ics';
+
+      const FETCH_TIMEOUT_MS = 12000; // 12s per request — bail and try the next
+
       const DEFAULT_TZ = 'America/Chicago';
       const LOCAL_TZ   = Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TZ;
       const CACHE_KEY  = 'aageek_calendar_cache_v1';
+      const NETA65_CACHE_KEY = 'aageek_neta65_cache_v1';
       const STARS_KEY  = 'aageek_stars_v1';
       const PREFS_KEY  = 'aageek_prefs_v2';
 
@@ -3110,7 +3121,8 @@
       const ALL_PAGE_SIZES = [10, 12, 20, 24, 30, 36, 48, 50, 96, 100, 0];
 
       const state = {
-        events: [],
+        events: [],                // every feed's events, merged — see publishEvents
+        feeds: { aageek: [], neta65: [] },   // each feed's last parsed events
         filtered: [],
         calFiltered: [],           // same filters minus "upcoming only" — see applyFilters
         paged: [],
@@ -3400,37 +3412,58 @@
       }
 
       async function fetchCalendar() {
-        const cached = readCache();
+        const cached = readCache(CACHE_KEY);
         const hadEventsBefore = state.events.length > 0;
 
-        // Paint from the cache only on first load. Once events are on screen
+        // Paint from the caches only on first load. Once events are on screen
         // a refresh (manual or the 10-minute auto one) must not re-parse the
         // whole cached feed just to replace it moments later.
-        if (cached && !hadEventsBefore) {
-          try {
-            processIcs(sanitizeIcs(cached.text));
+        if (!hadEventsBefore) {
+          const netaCached = readCache(NETA65_CACHE_KEY);
+          if (cached) {
+            try { state.feeds.aageek = processIcs(sanitizeIcs(cached.text)); }
+            catch (e) { console.warn('Cache parse failed', e); }
+          }
+          if (netaCached) {
+            try { state.feeds.neta65 = parseNeta65(sanitizeIcs(netaCached.text)); }
+            catch (e) { console.warn('NETA 65 cache parse failed', e); }
+          }
+          if (state.feeds.aageek.length || state.feeds.neta65.length) {
+            // A saved copy that can't be shown must never stop the fetch below.
+            try { publishEvents(); }
+            catch (e) {
+              console.warn('Cache paint failed', e);
+              state.feeds = { aageek: [], neta65: [] };
+              state.events = [];
+            }
+          }
+
+          // Only show skeletons when we have nothing to display yet.
+          if (!state.events.length) {
+            setSkeleton(5);
+            setStatus('Loading events…', { loading: true });
+          } else if (state.feeds.aageek.length) {
             setStatus(`Cached (${timeAgo(cached.ts)}) · refreshing…`, { loading: true });
-          } catch (e) { console.warn('Cache parse failed', e); }
-        } else if (hadEventsBefore) {
+          } else {
+            setStatus('Refreshing…', { loading: true });
+          }
+        } else {
           setStatus('Refreshing…', { loading: true });
         }
 
-        // Only show skeletons when we have nothing to display yet.
-        if (!hadEventsBefore && !cached) {
-          setSkeleton(5);
-          setStatus('Loading events…', { loading: true });
-        } else if (!cached) {
-          setStatus('Refreshing…', { loading: true });
-        }
-
-        const FETCH_TIMEOUT_MS = 12000; // 12s per strategy — bail and try the next
+        // The NETA 65 feed needs no proxy: fetch it alongside the Google one.
+        // Each feed is shown the moment it arrives, so neither waits on the
+        // other. (An empty NETA65_ICS_URL turns the second feed off.)
+        const netaJob = NETA65_ICS_URL
+          ? fetchNeta65().then((ok) => { if (ok) publishEvents(); return ok; })
+          : Promise.resolve(true);
 
         // Cache-buster: Google ignores unknown query params on the ICS URL, but
         // it stops a proxy (or an intermediary) from handing back a stale copy,
         // which would look exactly like "refresh did nothing".
         const srcUrl = `${ICS_URL}?_cb=${Date.now()}`;
 
-        let lastErr;
+        let lastErr, fresh = false;
         for (const strat of FETCH_STRATEGIES) {
           const url = strat(srcUrl);
           const ctrl = new AbortController();
@@ -3442,10 +3475,14 @@
             if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
             const text = sanitizeIcs(await res.text());
             if (!text) { lastErr = new Error('Response was not ICS'); continue; }
-            writeCache(text);
-            processIcs(text);
+            // Parse and show before caching, so a body that can't be shown
+            // never replaces a good saved copy.
+            state.feeds.aageek = processIcs(text);
+            publishEvents();
+            writeCache(CACHE_KEY, text);
+            fresh = true;
             setStatus('');
-            return;
+            break;
           } catch (e) {
             lastErr = e;
             const reason = e && e.name === 'AbortError' ? 'timed out' : (e && e.message) || e;
@@ -3455,37 +3492,80 @@
           }
         }
 
-        if (state.events.length === 0) {
+        // Both settled (and each already shown if it loaded): the final word.
+        const netaFresh = await netaJob;
+        if (fresh) {
+          if (!netaFresh) setStatus(state.feeds.neta65.length
+            ? 'NETA 65 Grapevine events could not be refreshed — showing the saved copy.'
+            : 'NETA 65 Grapevine events could not be loaded.', { error: true });
+        } else if (state.events.length === 0) {
           setStatus(`Could not load calendar. ${lastErr?.message || ''}`.trim(), { error: true });
           $('#events').innerHTML = '';
           $('#events').appendChild(el('div', { class: 'status error' },
             'Network or CORS error. You can still view events via the ',
             el('a', { href: '#', onClick: (e) => { e.preventDefault(); switchView('embed'); } }, 'Google'),
             ' tab.'));
+        } else if (!state.feeds.aageek.length) {
+          setStatus(`Could not load the AAGeek calendar — showing NETA 65 Grapevine events only. ${lastErr?.message || ''}`.trim(), { error: true });
         } else {
           setStatus(`Refresh failed — showing cached events from ${cached ? timeAgo(cached.ts) : 'memory'}.`, { error: true });
         }
       }
 
-      function readCache() {
+      // Fresh NETA 65 events into state.feeds.neta65; true on success. Never
+      // throws — a problem with this feed must not take the Google one down.
+      async function fetchNeta65() {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
         try {
-          const raw = localStorage.getItem(CACHE_KEY);
+          // no-cache: revalidate with GitHub Pages (a cheap 304 when unchanged).
+          const res = await fetch(NETA65_ICS_URL, { cache: 'no-cache', signal: ctrl.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = sanitizeIcs(await res.text());
+          if (!text) throw new Error('Response was not ICS');
+          state.feeds.neta65 = parseNeta65(text);
+          writeCache(NETA65_CACHE_KEY, text);
+          return true;
+        } catch (e) {
+          console.warn('NETA 65 feed failed:', e && e.name === 'AbortError' ? 'timed out' : (e && e.message) || e);
+          return false;
+        } finally {
+          clearTimeout(tid);
+        }
+      }
+
+      // Every feed's events in the one time-ordered list the views read.
+      function publishEvents() {
+        state.events = state.feeds.aageek.concat(state.feeds.neta65)
+          .sort((a, b) => a.start - b.start);
+        applyFilters();
+        render();
+        scheduleNotifications();
+      }
+
+      function readCache(key) {
+        try {
+          const raw = localStorage.getItem(key);
           return raw ? JSON.parse(raw) : null;
         } catch { return null; }
       }
-      function writeCache(text) {
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), text })); }
+      function writeCache(key, text) {
+        try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), text })); }
         catch { /* quota or private mode */ }
       }
 
       // -------------------------- ICS parsing ---------------------------
-      function processIcs(icsText) {
+      // Parses one feed into event objects; it doesn't touch state (see
+      // publishEvents). `describe(srcEvent, ve)`, when given, supplies each
+      // event's raw description in place of its own — the NETA 65 feed uses
+      // it to add the tag line its events don't carry.
+      function processIcs(icsText, describe) {
         if (typeof ICAL === 'undefined') throw new Error('ical.js failed to load');
 
         const jcal = ICAL.parse(icsText);
         const root = new ICAL.Component(jcal);
         const calName = root.getFirstPropertyValue('x-wr-calname');
-        if (calName) document.title = calName;
+        if (calName && !describe) document.title = calName;   // the main feed names the page
 
         // Register the feed's own VTIMEZONE definitions. Without this, ical.js
         // can't resolve "DTSTART;TZID=America/Chicago" and treats the event as
@@ -3569,7 +3649,7 @@
                 }
                 const endJS = endICAL ? endICAL.toJSDate() : null;
                 if (endJS && endJS < horizonStart) continue;
-                events.push(buildEvent(srcEvent, startICAL, endICAL, srcVe, true, rruleSummary));
+                events.push(buildEvent(srcEvent, startICAL, endICAL, srcVe, true, rruleSummary, describe));
               }
             } catch (e) {
               console.warn('Recurrence expansion failed for', baseEvent.summary, e);
@@ -3580,7 +3660,7 @@
             if (!startJS) continue;
             if (endJS   && endJS   < horizonStart) continue;
             if (startJS && startJS > horizonEnd)   continue;
-            events.push(buildEvent(baseEvent, baseEvent.startDate, baseEvent.endDate, ve, false, ''));
+            events.push(buildEvent(baseEvent, baseEvent.startDate, baseEvent.endDate, ve, false, '', describe));
           }
         }
 
@@ -3601,24 +3681,23 @@
             const eJS  = oe.endDate ? oe.endDate.toJSDate() : null;
             if (eJS && eJS < horizonStart) continue;
             if (sJS > horizonEnd)          continue;
-            events.push(buildEvent(oe, oe.startDate, oe.endDate, oe.component, false, ''));
+            events.push(buildEvent(oe, oe.startDate, oe.endDate, oe.component, false, '', describe));
           }
         }
 
-        events.sort((a, b) => a.start - b.start);
-        state.events = events;
-        applyFilters();
-        render();
-        scheduleNotifications();
+        // A start or end outside what a JS Date can hold (a DURATION of
+        // millions of days, say) is Invalid Date, which would throw later in
+        // every render. Drop that event rather than lose the whole feed.
+        return events.filter(ev => !isNaN(ev.start) && !isNaN(ev.end));
       }
 
-      function buildEvent(srcEvent, startICAL, endICAL, ve, recurring, rruleSummary) {
+      function buildEvent(srcEvent, startICAL, endICAL, ve, recurring, rruleSummary, describe) {
         const start = startICAL.toJSDate();
         const end   = endICAL ? endICAL.toJSDate() : new Date(start.getTime() + 60 * 60 * 1000);
         const isAllDay = !!(startICAL && startICAL.isDate);
 
         const summary     = (srcEvent.summary || '(No title)').trim();
-        const description = (srcEvent.description || '').trim();
+        const description = describe ? describe(srcEvent, ve) : (srcEvent.description || '').trim();
         const location    = (srcEvent.location || '').trim();
         const url         = ve.getFirstPropertyValue('url') || '';
         const uid         = (srcEvent.uid || '') + '@' + start.toISOString();
@@ -3635,6 +3714,108 @@
           recurring: !!recurring,
           rruleSummary: rruleSummary || '',
         };
+      }
+
+      // -------------------------- NETA 65 feed --------------------------
+      // https://neta65.github.io/aagrapevine/events/ as ICS. Its descriptions
+      // are plain text with no tag line, so each event is handed to
+      // processDescription() in the shape a hand-entered one has.
+      function parseNeta65(icsText) {
+        return markNeta65Series(processIcs(icsText, neta65Description));
+      }
+
+      // Online-meeting links: their presence decides Virtual / Hybrid below.
+      const ONLINE_MEETING_RE = /zoom\.us|zoommtg:|zoomus:|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com/i;
+
+      // "NETA65|Service|<venue>", an "IMG:" line per image attachment (the
+      // flyers), the "--" separator, then the description as HTML. Venue: a
+      // link for a location is Virtual; an address is Physical, or Hybrid when
+      // the description also gives an online-meeting link; no location at all
+      // ("venue to be announced") is Physical unless there is such a link.
+      function neta65Description(srcEvent, ve) {
+        const text     = (srcEvent.description || '').trim();
+        const location = (srcEvent.location || '').trim();
+        const online   = ONLINE_MEETING_RE.test(text);
+        const venue = safeUrlProtocol(location) ? 'Virtual'
+          : online ? (location ? 'Hybrid' : 'Virtual')
+          : 'Physical';
+        const images = ve.getAllProperties('attach')
+          .filter(p => { const type = p.getParameter('fmttype'); return !type || /^image\//i.test(type); })
+          .map(p => String(p.getFirstValue() || ''))
+          .filter(isImageUrl)
+          // extractUrls() reads an IMG: line's URL up to the first quote.
+          .map(u => u.replace(/'/g, '%27').replace(/"/g, '%22'));
+        // Only our own lines above are image markers: an "IMG:" that starts a
+        // line of the feed's text stays text (&#58; still reads as ":").
+        const body = textToHtml(text).replace(/(^|<br>)([ \t]*IMG[ \t]*):/gi, '$1$2&#58;');
+        return `NETA65|Service|${venue}<br>` +
+          images.map(u => `IMG: ${escapeHtml(u)}<br>`).join('') +
+          '<br>--<br>' + body;
+      }
+
+      // Attachments the dialog can show as images: Drive files (buildImageRef
+      // turns those into image URLs) or a plain link to an image file.
+      function isImageUrl(url) {
+        if (!/^https?:\/\//i.test(url)) return false;
+        if (driveFileId(url) && /(^|\.)google(usercontent)?\.com$/i.test(hostOf(url))) return true;
+        try { return /\.(png|jpe?g|gif|webp|avif)$/i.test(new URL(url).pathname); }
+        catch { return false; }
+      }
+
+      // Plain text as description HTML: escaped, newlines as <br>, and web and
+      // email addresses as links (sanitizeHTML still vets every href).
+      const TEXT_LINK_RE = /\bhttps?:\/\/[^\s<>"]+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/gi;
+      function textToHtml(text) {
+        const html = (s) => escapeHtml(s).replace(/\r?\n/g, '<br>');
+        let out = '', last = 0;
+        for (const m of text.matchAll(TEXT_LINK_RE)) {
+          // Trailing punctuation isn't part of the address, nor is a ")" that
+          // closes a bracket opened before it, as in "(see https://x.org)" —
+          // but ".../Foo_(bar)" keeps its own.
+          let link = m[0];
+          for (let prev; prev !== link; ) {
+            prev = link;
+            link = link.replace(/[.,;:!?'"]+$/, '');
+            if (link.endsWith(')') && link.split(')').length > link.split('(').length) link = link.slice(0, -1);
+          }
+          const href = link.includes('://') ? link : 'mailto:' + link;
+          out += html(text.slice(last, m.index)) +
+                 `<a href="${escapeHtml(href)}">${escapeHtml(link)}</a>`;
+          last = m.index + link.length;
+        }
+        return out + html(text.slice(last));
+      }
+
+      // The feed lists each date of a repeating event as its own VEVENT, with
+      // the date at the end of the UID ("ev-committee-2026-11-18@neta65-gvlv").
+      // Group them back into series so they get the 🔁 badge, and a summary in
+      // summarizeRRule's style when every date is the same weekday of the
+      // month in the calendar's home zone ("Monthly · third Wednesday").
+      const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth'];
+      function markNeta65Series(events) {
+        const series = new Map();
+        for (const ev of events) {
+          const srcUid = ev.uid.slice(0, ev.uid.lastIndexOf('@'));   // drop "@<ISO start>"
+          const key = srcUid.replace(/-\d{4}-\d{2}-\d{2}(?=@)/, '');
+          if (!series.has(key)) series.set(key, []);
+          series.get(key).push(ev);
+        }
+        // All-day dates are device-local (see fmt), timed ones are in Chicago.
+        const zoned = (tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long', day: 'numeric' });
+        const homeFmt = zoned(DEFAULT_TZ), localFmt = zoned(LOCAL_TZ);
+        const ruleOf = (ev) => {
+          const parts = (ev.isAllDay ? localFmt : homeFmt).formatToParts(ev.start);
+          const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+          return `${ORDINALS[Math.ceil(p.day / 7) - 1]} ${p.weekday}`;
+        };
+        for (const list of series.values()) {
+          // Dates the feed itself expands from an RRULE keep their own summary.
+          if (list.length < 2 || list.some(ev => ev.recurring)) continue;
+          const rules = new Set(list.map(ruleOf));
+          const summary = rules.size === 1 ? `Monthly · ${[...rules][0]}` : '';
+          for (const ev of list) { ev.recurring = true; ev.rruleSummary = summary; }
+        }
+        return events;
       }
 
       // -------------------- Description / HTML helpers ------------------

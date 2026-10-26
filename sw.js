@@ -10,10 +10,11 @@
      CDN libraries & fonts   stale-while-revalidate (Pico.css, ical.js,
                              Inter). Without ical.js cached the app cannot
                              parse anything offline, so these are precached.
-     Everything else         untouched: the calendar feed and its CORS
-                             proxies (the app keeps its own cache of the
-                             feed in localStorage), the Google embed, Drive
-                             images, maps / Zoom links.
+     Everything else         untouched: the calendar feeds (Google, its CORS
+                             proxies, and the NETA 65 Grapevine feed — the
+                             app keeps its own cache of each in
+                             localStorage), the Google embed, Drive images,
+                             maps / Zoom links.
 
    Bump VERSION whenever a deploy changes any precached file. The page then
    offers "Update available — Reload" (see registerServiceWorker in
@@ -21,7 +22,7 @@
    ===================================================================== */
 'use strict';
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL   = `aageek-shell-${VERSION}`;
 const RUNTIME = 'aageek-runtime-v1';
 const RUNTIME_MAX_ENTRIES = 60;
